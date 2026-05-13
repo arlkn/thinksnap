@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Thinksnap.Core.Annotations;
 
 public sealed record AnnotationOperation
@@ -7,7 +9,7 @@ public sealed record AnnotationOperation
         RectD? bounds,
         PointD? start,
         PointD? end,
-        IReadOnlyList<PointD> points,
+        ImmutableArray<PointD> points,
         string? text,
         string color,
         double strokeThickness)
@@ -30,7 +32,7 @@ public sealed record AnnotationOperation
 
     public PointD? End { get; }
 
-    public IReadOnlyList<PointD> Points { get; }
+    public ImmutableArray<PointD> Points { get; }
 
     public string? Text { get; }
 
@@ -45,7 +47,7 @@ public sealed record AnnotationOperation
             bounds,
             null,
             null,
-            Array.Empty<PointD>(),
+            ImmutableArray<PointD>.Empty,
             null,
             "#ff0000",
             0);
@@ -58,7 +60,7 @@ public sealed record AnnotationOperation
             null,
             start,
             end,
-            Array.Empty<PointD>(),
+            ImmutableArray<PointD>.Empty,
             null,
             color,
             strokeThickness);
@@ -71,7 +73,7 @@ public sealed record AnnotationOperation
             null,
             start,
             end,
-            Array.Empty<PointD>(),
+            ImmutableArray<PointD>.Empty,
             null,
             color,
             strokeThickness);
@@ -84,7 +86,7 @@ public sealed record AnnotationOperation
             bounds,
             null,
             null,
-            Array.Empty<PointD>(),
+            ImmutableArray<PointD>.Empty,
             null,
             color,
             strokeThickness);
@@ -99,7 +101,7 @@ public sealed record AnnotationOperation
             null,
             null,
             null,
-            points.ToArray(),
+            points.ToImmutableArray(),
             null,
             color,
             strokeThickness);
@@ -112,7 +114,7 @@ public sealed record AnnotationOperation
             null,
             start,
             null,
-            Array.Empty<PointD>(),
+            ImmutableArray<PointD>.Empty,
             text,
             color,
             0);

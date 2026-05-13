@@ -6,7 +6,7 @@ public sealed class EditHistory
 {
     private readonly List<AnnotationOperation> _operations = [];
 
-    public IReadOnlyList<AnnotationOperation> Operations => _operations;
+    public IReadOnlyList<AnnotationOperation> Operations => _operations.ToArray();
 
     public void Add(AnnotationOperation operation)
     {
