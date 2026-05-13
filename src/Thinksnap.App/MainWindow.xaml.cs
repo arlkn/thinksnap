@@ -75,8 +75,8 @@ public partial class MainWindow : Window
             }
 
             using var croppedCapture = captureService.CropBitmap(screenCapture, selected.Value);
-            _ = captureService.ToBitmapSource(croppedCapture);
-            StatusText.Text = $"Selected {selected.Value.Width}x{selected.Value.Height} region. Editor opens in the next task.";
+            new EditorWindow(captureService.ToBitmapSource(croppedCapture)).Show();
+            StatusText.Text = $"Selected {selected.Value.Width}x{selected.Value.Height} region.";
         }
         catch (Exception ex)
         {
