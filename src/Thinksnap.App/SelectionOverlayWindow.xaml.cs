@@ -9,9 +9,11 @@ public partial class SelectionOverlayWindow : Window
 {
     private const int MinimumSelectionSize = 5;
 
+    private readonly double scaleX;
+    private readonly double scaleY;
     private WindowsPoint? dragStart;
 
-    public SelectionOverlayWindow()
+    public SelectionOverlayWindow(int capturePixelWidth, int capturePixelHeight)
     {
         InitializeComponent();
 
@@ -19,6 +21,8 @@ public partial class SelectionOverlayWindow : Window
         Top = SystemParameters.VirtualScreenTop;
         Width = SystemParameters.VirtualScreenWidth;
         Height = SystemParameters.VirtualScreenHeight;
+        scaleX = capturePixelWidth / Width;
+        scaleY = capturePixelHeight / Height;
     }
 
     public Int32Rect? SelectedRegion { get; private set; }
@@ -55,7 +59,7 @@ public partial class SelectionOverlayWindow : Window
         }
 
         OverlayCanvas.ReleaseMouseCapture();
-        var selectedRegion = NormalizeRegion(dragStart.Value, e.GetPosition(OverlayCanvas));
+        var selectedRegion = NormalizeRegion(dragStart.Value, e.GetPosition(OverlayCanvas), scaleX, scaleY);
         dragStart = null;
 
         if (selectedRegion.Width < MinimumSelectionSize || selectedRegion.Height < MinimumSelectionSize)
@@ -82,7 +86,7 @@ public partial class SelectionOverlayWindow : Window
 
     private void UpdateSelectionRectangle(WindowsPoint current)
     {
-        var region = NormalizeRegion(dragStart!.Value, current);
+        var region = NormalizeRegion(dragStart!.Value, current, scaleX: 1, scaleY: 1);
 
         Canvas.SetLeft(SelectionRectangle, region.X);
         Canvas.SetTop(SelectionRectangle, region.Y);
@@ -90,12 +94,12 @@ public partial class SelectionOverlayWindow : Window
         SelectionRectangle.Height = region.Height;
     }
 
-    private static Int32Rect NormalizeRegion(WindowsPoint start, WindowsPoint end)
+    private static Int32Rect NormalizeRegion(WindowsPoint start, WindowsPoint end, double scaleX, double scaleY)
     {
-        var left = (int)Math.Round(Math.Min(start.X, end.X));
-        var top = (int)Math.Round(Math.Min(start.Y, end.Y));
-        var right = (int)Math.Round(Math.Max(start.X, end.X));
-        var bottom = (int)Math.Round(Math.Max(start.Y, end.Y));
+        var left = (int)Math.Round(Math.Min(start.X, end.X) * scaleX);
+        var top = (int)Math.Round(Math.Min(start.Y, end.Y) * scaleY);
+        var right = (int)Math.Round(Math.Max(start.X, end.X) * scaleX);
+        var bottom = (int)Math.Round(Math.Max(start.Y, end.Y) * scaleY);
 
         return new Int32Rect(left, top, right - left, bottom - top);
     }

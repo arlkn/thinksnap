@@ -62,7 +62,7 @@ public partial class MainWindow : Window
             await Task.Delay(150);
 
             using var screenCapture = captureService.CaptureVirtualScreen();
-            var overlay = new SelectionOverlayWindow();
+            var overlay = new SelectionOverlayWindow(screenCapture.Width, screenCapture.Height);
             var selected = overlay.ShowDialog() == true ? overlay.SelectedRegion : null;
 
             Show();
