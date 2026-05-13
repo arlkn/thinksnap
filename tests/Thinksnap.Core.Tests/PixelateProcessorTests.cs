@@ -74,4 +74,24 @@ public sealed class PixelateProcessorTests
 
         Assert.Equal(original, pixels);
     }
+
+    [Fact]
+    public void PixelateWithHugeBlockSizeDoesNotOverflowBlockBounds()
+    {
+        var pixels = Enumerable.Range(0, 100)
+            .Select(value => new Rgba32((byte)value, 0, 0, 255))
+            .ToArray();
+
+        var result = PixelateProcessor.Pixelate(
+            pixels,
+            width: 1,
+            height: 100,
+            x: 0,
+            y: 99,
+            regionWidth: 1,
+            regionHeight: 1,
+            blockSize: int.MaxValue);
+
+        Assert.Equal(pixels[99], result[99]);
+    }
 }
