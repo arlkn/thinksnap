@@ -48,17 +48,20 @@ public static class PixelateProcessor
             return result;
         }
 
-        for (var blockY = top; blockY < bottom; blockY += blockSize)
+        for (var blockY = top; blockY < bottom;)
         {
             var blockBottom = blockY + Math.Min(blockSize, bottom - blockY);
 
-            for (var blockX = left; blockX < right; blockX += blockSize)
+            for (var blockX = left; blockX < right;)
             {
                 var blockRight = blockX + Math.Min(blockSize, right - blockX);
                 var average = Average(result, width, blockX, blockY, blockRight, blockBottom);
 
                 Fill(result, width, blockX, blockY, blockRight, blockBottom, average);
+                blockX = blockRight;
             }
+
+            blockY = blockBottom;
         }
 
         return result;
