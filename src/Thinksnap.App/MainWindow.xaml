@@ -1,0 +1,25 @@
+<Window x:Class="Thinksnap.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Thinksnap"
+        Height="360"
+        Width="560"
+        MinHeight="280"
+        MinWidth="420">
+    <Grid Margin="32">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="Thinksnap"
+                       FontSize="32"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center" />
+            <TextBlock Text="Capture workflow coming soon."
+                       Margin="0,8,0,24"
+                       Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                       HorizontalAlignment="Center" />
+            <Button Content="Capture"
+                    Width="160"
+                    Height="40"
+                    IsEnabled="False" />
+        </StackPanel>
+    </Grid>
+</Window>
