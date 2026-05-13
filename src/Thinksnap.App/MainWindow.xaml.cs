@@ -1,11 +1,50 @@
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Interop;
+using Thinksnap.App.Interop;
 
 namespace Thinksnap.App;
 
 public partial class MainWindow : Window
 {
+    private const uint VkSnapshot = 0x2C;
+
+    private GlobalHotkey? printScreenHotkey;
+
     public MainWindow()
     {
         InitializeComponent();
+
+        SourceInitialized += MainWindow_SourceInitialized;
+        Closed += MainWindow_Closed;
+    }
+
+    private void MainWindow_SourceInitialized(object? sender, EventArgs e)
+    {
+        try
+        {
+            var handle = new WindowInteropHelper(this).Handle;
+            printScreenHotkey = new GlobalHotkey(handle, VkSnapshot, StartCapture);
+        }
+        catch (Win32Exception)
+        {
+            StatusText.Text = "PrintScreen hotkey is unavailable.";
+        }
+    }
+
+    private void MainWindow_Closed(object? sender, EventArgs e)
+    {
+        printScreenHotkey?.Dispose();
+        printScreenHotkey = null;
+    }
+
+    private void CaptureButton_Click(object sender, RoutedEventArgs e)
+    {
+        StartCapture();
+    }
+
+    private void StartCapture()
+    {
+        StatusText.Text = "Capture flow will open in the next task.";
     }
 }

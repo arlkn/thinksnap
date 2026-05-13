@@ -12,14 +12,20 @@
                        FontSize="32"
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center" />
-            <TextBlock Text="Capture workflow coming soon."
+            <TextBlock Text="Press PrintScreen or use the button below to start a region capture."
                        Margin="0,8,0,24"
                        Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
                        HorizontalAlignment="Center" />
-            <Button Content="Capture"
+            <Button x:Name="CaptureButton"
+                    Content="Capture Region"
                     Width="160"
                     Height="40"
-                    IsEnabled="False" />
+                    Click="CaptureButton_Click" />
+            <TextBlock x:Name="StatusText"
+                       Margin="0,16,0,0"
+                       Text="Ready."
+                       Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                       HorizontalAlignment="Center" />
         </StackPanel>
     </Grid>
 </Window>
