@@ -14,6 +14,7 @@ public sealed class AnnotationCanvas : Canvas
 {
     private const string DefaultStroke = "#ff0000";
     private const double DefaultStrokeThickness = 3;
+    private const double MinimumDragDistance = 2;
 
     private readonly Image baseImage = new();
     private readonly List<AnnotationOperation> operations = [];
@@ -30,7 +31,7 @@ public sealed class AnnotationCanvas : Canvas
         Children.Add(baseImage);
     }
 
-    public AnnotationTool ActiveTool { get; set; } = AnnotationTool.Rectangle;
+    public AnnotationTool ActiveTool { get; set; } = AnnotationTool.Pixelate;
 
     public string StrokeColor { get; set; } = DefaultStroke;
 
@@ -118,7 +119,15 @@ public sealed class AnnotationCanvas : Canvas
 
         ReleaseMouseCapture();
         UpdateActiveVisuals(start, end);
-        AddOperation(start, end, activeVisuals);
+
+        if (IsMeaningfulOperation(start, end))
+        {
+            AddOperation(start, end, activeVisuals);
+        }
+        else
+        {
+            RemoveVisuals(activeVisuals);
+        }
 
         dragStart = null;
         activeVisuals = null;
@@ -223,8 +232,10 @@ public sealed class AnnotationCanvas : Canvas
         textBox.Focus();
         textBox.SelectAll();
 
+        var operationIndex = operations.Count;
         operations.Add(AnnotationOperation.TextLabel(ToPointD(start), textBox.Text, StrokeColor));
         operationVisuals.Add([textBox]);
+        textBox.TextChanged += (_, _) => UpdateTextOperation(operationIndex, textBox);
     }
 
     private void UpdateActiveVisuals(WpfPoint start, WpfPoint end)
@@ -312,6 +323,73 @@ public sealed class AnnotationCanvas : Canvas
 
         operations.Add(operation);
         operationVisuals.Add(visuals);
+    }
+
+    private bool IsMeaningfulOperation(WpfPoint start, WpfPoint end)
+    {
+        return ActiveTool switch
+        {
+            AnnotationTool.Line or AnnotationTool.Arrow => Distance(start, end) >= MinimumDragDistance,
+            AnnotationTool.Rectangle or AnnotationTool.Pixelate => ToRectD(start, end).IsTooSmall(MinimumDragDistance) is false,
+            AnnotationTool.Pen => HasMeaningfulPenStroke(),
+            _ => true
+        };
+    }
+
+    private bool HasMeaningfulPenStroke()
+    {
+        if (penPoints.Count < 2)
+        {
+            return false;
+        }
+
+        var distance = 0d;
+        for (var index = 1; index < penPoints.Count; index++)
+        {
+            distance += Distance(penPoints[index - 1], penPoints[index]);
+        }
+
+        return distance >= MinimumDragDistance;
+    }
+
+    private void UpdateTextOperation(int operationIndex, TextBox textBox)
+    {
+        if (operationIndex >= operations.Count ||
+            operationIndex >= operationVisuals.Count ||
+            Array.IndexOf(operationVisuals[operationIndex], textBox) < 0)
+        {
+            return;
+        }
+
+        var current = operations[operationIndex];
+        if (current.Tool != AnnotationTool.Text || current.Start is not { } position)
+        {
+            return;
+        }
+
+        operations[operationIndex] = AnnotationOperation.TextLabel(position, textBox.Text, current.Color);
+    }
+
+    private void RemoveVisuals(IEnumerable<UIElement> visuals)
+    {
+        foreach (var visual in visuals)
+        {
+            Children.Remove(visual);
+        }
+    }
+
+    private static double Distance(WpfPoint start, WpfPoint end)
+    {
+        var deltaX = end.X - start.X;
+        var deltaY = end.Y - start.Y;
+        return Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+    }
+
+    private static double Distance(PointD start, PointD end)
+    {
+        var deltaX = end.X - start.X;
+        var deltaY = end.Y - start.Y;
+        return Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
     }
 
     private Brush CreateStrokeBrush()
