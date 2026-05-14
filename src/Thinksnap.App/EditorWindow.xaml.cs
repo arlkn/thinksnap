@@ -1,11 +1,14 @@
 using System.Windows;
 using System.Windows.Media.Imaging;
+using Thinksnap.App.Services;
 using Thinksnap.Core.Annotations;
 
 namespace Thinksnap.App;
 
 public partial class EditorWindow : Window
 {
+    private readonly ExportService exportService = new();
+
     public EditorWindow(BitmapSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -51,11 +54,25 @@ public partial class EditorWindow : Window
 
     private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(this, "Copy export is implemented in the next task.", "Thinksnap");
+        try
+        {
+            exportService.CopyToClipboard(CanvasHost.RenderOutput());
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Copy failed: {ex.Message}", "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(this, "Save export is implemented in the next task.", "Thinksnap");
+        try
+        {
+            exportService.SavePng(CanvasHost.RenderOutput());
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Save failed: {ex.Message}", "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }

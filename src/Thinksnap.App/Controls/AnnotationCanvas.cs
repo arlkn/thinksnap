@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Thinksnap.Core.Annotations;
+using Thinksnap.Core.Imaging;
 using WpfPoint = System.Windows.Point;
 using WpfRectangle = System.Windows.Shapes.Rectangle;
 
@@ -15,12 +16,14 @@ public sealed class AnnotationCanvas : Canvas
     private const string DefaultStroke = "#ff0000";
     private const double DefaultStrokeThickness = 3;
     private const double MinimumDragDistance = 2;
+    private const int PixelateBlockSize = 12;
 
     private readonly Image baseImage = new();
     private readonly List<AnnotationOperation> operations = [];
-    private readonly List<UIElement[]> operationVisuals = [];
+    private readonly List<UndoEntry> undoEntries = [];
     private readonly List<PointD> penPoints = [];
 
+    private WriteableBitmap? baseBitmap;
     private WpfPoint? dragStart;
     private UIElement[]? activeVisuals;
 
@@ -43,32 +46,55 @@ public sealed class AnnotationCanvas : Canvas
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        baseImage.Source = source;
-        baseImage.Width = source.Width;
-        baseImage.Height = source.Height;
-        Width = source.Width;
-        Height = source.Height;
+        var converted = source.Format == PixelFormats.Bgra32
+            ? source
+            : new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+
+        baseBitmap = new WriteableBitmap(converted);
+        baseImage.Source = baseBitmap;
+        baseImage.Width = baseBitmap.PixelWidth;
+        baseImage.Height = baseBitmap.PixelHeight;
+        Width = baseBitmap.PixelWidth;
+        Height = baseBitmap.PixelHeight;
     }
 
     public void Undo()
     {
-        if (operationVisuals.Count == 0)
+        if (undoEntries.Count == 0)
         {
             return;
         }
 
-        var visuals = operationVisuals[^1];
-        operationVisuals.RemoveAt(operationVisuals.Count - 1);
+        var entry = undoEntries[^1];
+        undoEntries.RemoveAt(undoEntries.Count - 1);
 
-        foreach (var visual in visuals)
+        foreach (var visual in entry.Visuals)
         {
             Children.Remove(visual);
+        }
+
+        if (entry.PreviousBitmapPixels is not null)
+        {
+            RestoreBitmapPixels(entry.PreviousBitmapPixels);
         }
 
         if (operations.Count > 0)
         {
             operations.RemoveAt(operations.Count - 1);
         }
+    }
+
+    public RenderTargetBitmap RenderOutput()
+    {
+        UpdateLayout();
+
+        var width = Math.Max(1, (int)Math.Ceiling(Width));
+        var height = Math.Max(1, (int)Math.Ceiling(Height));
+        var output = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        output.Render(this);
+        output.Freeze();
+
+        return output;
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -142,7 +168,7 @@ public sealed class AnnotationCanvas : Canvas
             AnnotationTool.Line => AddLine(start),
             AnnotationTool.Arrow => AddArrow(start),
             AnnotationTool.Rectangle => AddRectangle(start, fill: Brushes.Transparent),
-            AnnotationTool.Pixelate => AddRectangle(start, fill: CreatePixelateFill()),
+            AnnotationTool.Pixelate => AddPixelateSelection(start),
             AnnotationTool.Pen => AddPen(start),
             _ => []
         };
@@ -214,6 +240,23 @@ public sealed class AnnotationCanvas : Canvas
         return [polyline];
     }
 
+    private UIElement[] AddPixelateSelection(WpfPoint start)
+    {
+        var rectangle = new WpfRectangle
+        {
+            Fill = Brushes.Transparent,
+            Stroke = Brushes.White,
+            StrokeThickness = 1,
+            StrokeDashArray = [4, 3],
+            IsHitTestVisible = false
+        };
+
+        SetLeft(rectangle, start.X);
+        SetTop(rectangle, start.Y);
+        Children.Add(rectangle);
+        return [rectangle];
+    }
+
     private void AddText(WpfPoint start)
     {
         var textBox = new TextBox
@@ -234,7 +277,7 @@ public sealed class AnnotationCanvas : Canvas
 
         var operationIndex = operations.Count;
         operations.Add(AnnotationOperation.TextLabel(ToPointD(start), textBox.Text, StrokeColor));
-        operationVisuals.Add([textBox]);
+        undoEntries.Add(new UndoEntry([textBox], PreviousBitmapPixels: null));
         textBox.TextChanged += (_, _) => UpdateTextOperation(operationIndex, textBox);
     }
 
@@ -306,12 +349,17 @@ public sealed class AnnotationCanvas : Canvas
 
     private void AddOperation(WpfPoint start, WpfPoint end, UIElement[] visuals)
     {
+        if (ActiveTool == AnnotationTool.Pixelate)
+        {
+            AddPixelateOperation(start, end, visuals);
+            return;
+        }
+
         var operation = ActiveTool switch
         {
             AnnotationTool.Line => AnnotationOperation.Line(ToPointD(start), ToPointD(end), StrokeColor, StrokeThickness),
             AnnotationTool.Arrow => AnnotationOperation.Arrow(ToPointD(start), ToPointD(end), StrokeColor, StrokeThickness),
             AnnotationTool.Rectangle => AnnotationOperation.Rectangle(ToRectD(start, end), StrokeColor, StrokeThickness),
-            AnnotationTool.Pixelate => AnnotationOperation.Pixelate(ToRectD(start, end)),
             AnnotationTool.Pen => AnnotationOperation.Pen(penPoints, StrokeColor, StrokeThickness),
             _ => null
         };
@@ -322,7 +370,50 @@ public sealed class AnnotationCanvas : Canvas
         }
 
         operations.Add(operation);
-        operationVisuals.Add(visuals);
+        undoEntries.Add(new UndoEntry(visuals, PreviousBitmapPixels: null));
+    }
+
+    private void AddPixelateOperation(WpfPoint start, WpfPoint end, UIElement[] visuals)
+    {
+        RemoveVisuals(visuals);
+
+        if (baseBitmap is null)
+        {
+            return;
+        }
+
+        var rect = ToRectD(start, end);
+        var previousPixels = CopyBitmapPixels();
+        ApplyPixelate(rect);
+
+        operations.Add(AnnotationOperation.Pixelate(rect));
+        undoEntries.Add(new UndoEntry([], previousPixels));
+    }
+
+    private void ApplyPixelate(RectD rect)
+    {
+        if (baseBitmap is null)
+        {
+            return;
+        }
+
+        var width = baseBitmap.PixelWidth;
+        var height = baseBitmap.PixelHeight;
+        var stride = width * 4;
+        var buffer = CopyBitmapPixels();
+        var pixels = ToRgbaPixels(buffer);
+        var pixelated = PixelateProcessor.Pixelate(
+            pixels,
+            width,
+            height,
+            (int)Math.Floor(rect.X),
+            (int)Math.Floor(rect.Y),
+            (int)Math.Ceiling(rect.Width),
+            (int)Math.Ceiling(rect.Height),
+            PixelateBlockSize);
+
+        var pixelatedBytes = ToBgraBytes(pixelated);
+        baseBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixelatedBytes, stride, 0);
     }
 
     private bool IsMeaningfulOperation(WpfPoint start, WpfPoint end)
@@ -355,8 +446,8 @@ public sealed class AnnotationCanvas : Canvas
     private void UpdateTextOperation(int operationIndex, TextBox textBox)
     {
         if (operationIndex >= operations.Count ||
-            operationIndex >= operationVisuals.Count ||
-            Array.IndexOf(operationVisuals[operationIndex], textBox) < 0)
+            operationIndex >= undoEntries.Count ||
+            Array.IndexOf(undoEntries[operationIndex].Visuals, textBox) < 0)
         {
             return;
         }
@@ -378,6 +469,64 @@ public sealed class AnnotationCanvas : Canvas
         }
     }
 
+    private byte[] CopyBitmapPixels()
+    {
+        if (baseBitmap is null)
+        {
+            return [];
+        }
+
+        var stride = baseBitmap.PixelWidth * 4;
+        var pixels = new byte[stride * baseBitmap.PixelHeight];
+        baseBitmap.CopyPixels(pixels, stride, 0);
+        return pixels;
+    }
+
+    private void RestoreBitmapPixels(byte[] pixels)
+    {
+        if (baseBitmap is null)
+        {
+            return;
+        }
+
+        var stride = baseBitmap.PixelWidth * 4;
+        baseBitmap.WritePixels(new Int32Rect(0, 0, baseBitmap.PixelWidth, baseBitmap.PixelHeight), pixels, stride, 0);
+    }
+
+    private static Rgba32[] ToRgbaPixels(byte[] bgraPixels)
+    {
+        var pixels = new Rgba32[bgraPixels.Length / 4];
+
+        for (var pixelIndex = 0; pixelIndex < pixels.Length; pixelIndex++)
+        {
+            var byteIndex = pixelIndex * 4;
+            pixels[pixelIndex] = new Rgba32(
+                bgraPixels[byteIndex + 2],
+                bgraPixels[byteIndex + 1],
+                bgraPixels[byteIndex],
+                bgraPixels[byteIndex + 3]);
+        }
+
+        return pixels;
+    }
+
+    private static byte[] ToBgraBytes(IReadOnlyList<Rgba32> rgbaPixels)
+    {
+        var bytes = new byte[rgbaPixels.Count * 4];
+
+        for (var pixelIndex = 0; pixelIndex < rgbaPixels.Count; pixelIndex++)
+        {
+            var byteIndex = pixelIndex * 4;
+            var pixel = rgbaPixels[pixelIndex];
+            bytes[byteIndex] = pixel.B;
+            bytes[byteIndex + 1] = pixel.G;
+            bytes[byteIndex + 2] = pixel.R;
+            bytes[byteIndex + 3] = pixel.A;
+        }
+
+        return bytes;
+    }
+
     private static double Distance(WpfPoint start, WpfPoint end)
     {
         var deltaX = end.X - start.X;
@@ -397,11 +546,6 @@ public sealed class AnnotationCanvas : Canvas
         return (Brush)new BrushConverter().ConvertFromString(StrokeColor)!;
     }
 
-    private static Brush CreatePixelateFill()
-    {
-        return new SolidColorBrush(Color.FromArgb(80, 255, 0, 0));
-    }
-
     private static PointD ToPointD(WpfPoint point)
     {
         return new PointD(point.X, point.Y);
@@ -414,4 +558,6 @@ public sealed class AnnotationCanvas : Canvas
 
         return new RectD(left, top, Math.Abs(end.X - start.X), Math.Abs(end.Y - start.Y));
     }
+
+    private sealed record UndoEntry(UIElement[] Visuals, byte[]? PreviousBitmapPixels);
 }
