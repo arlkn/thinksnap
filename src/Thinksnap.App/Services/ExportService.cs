@@ -13,7 +13,7 @@ public sealed class ExportService
         System.Windows.Clipboard.SetImage(bitmap);
     }
 
-    public bool SavePng(BitmapSource bitmap)
+    public bool SavePng(BitmapSource bitmap, Window? owner = null)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
@@ -26,7 +26,8 @@ public sealed class ExportService
             OverwritePrompt = true
         };
 
-        if (dialog.ShowDialog() != true)
+        var accepted = owner is null ? dialog.ShowDialog() : dialog.ShowDialog(owner);
+        if (accepted != true)
         {
             return false;
         }

@@ -62,21 +62,12 @@ public partial class MainWindow : Window
             await Task.Delay(150);
 
             using var screenCapture = captureService.CaptureVirtualScreen();
-            var overlay = new SelectionOverlayWindow(screenCapture.Width, screenCapture.Height);
-            var selected = overlay.ShowDialog() == true ? overlay.SelectedRegion : null;
+            var overlay = new SelectionOverlayWindow(screenCapture, captureService);
+            _ = overlay.ShowDialog();
 
             Show();
             Activate();
-
-            if (selected is null)
-            {
-                StatusText.Text = "Capture canceled.";
-                return;
-            }
-
-            using var croppedCapture = captureService.CropBitmap(screenCapture, selected.Value);
-            new EditorWindow(captureService.ToBitmapSource(croppedCapture)).Show();
-            StatusText.Text = $"Selected {selected.Value.Width}x{selected.Value.Height} region.";
+            StatusText.Text = overlay.ResultMessage;
         }
         catch (Exception ex)
         {
