@@ -60,7 +60,7 @@ public partial class EditorWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Copy failed: {ex.Message}", "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Windows.MessageBox.Show(this, $"Copy failed: {ex.Message}", "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -72,7 +72,7 @@ public partial class EditorWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Save failed: {ex.Message}", "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Windows.MessageBox.Show(this, $"Save failed: {ex.Message}", "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

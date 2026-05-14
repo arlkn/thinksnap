@@ -41,7 +41,7 @@ public partial class SelectionOverlayWindow : Window
         OverlayCanvas.CaptureMouse();
     }
 
-    private void OverlayCanvas_MouseMove(object sender, MouseEventArgs e)
+    private void OverlayCanvas_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
         if (dragStart is null || e.LeftButton != MouseButtonState.Pressed)
         {
@@ -73,7 +73,7 @@ public partial class SelectionOverlayWindow : Window
         DialogResult = true;
     }
 
-    private void Window_KeyDown(object sender, KeyEventArgs e)
+    private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key != Key.Escape)
         {

@@ -10,14 +10,14 @@ public sealed class ExportService
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
-        Clipboard.SetImage(bitmap);
+        System.Windows.Clipboard.SetImage(bitmap);
     }
 
     public bool SavePng(BitmapSource bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
-        var dialog = new SaveFileDialog
+        var dialog = new Microsoft.Win32.SaveFileDialog
         {
             AddExtension = true,
             DefaultExt = ".png",

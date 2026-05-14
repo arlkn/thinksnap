@@ -6,7 +6,11 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Thinksnap.Core.Annotations;
 using Thinksnap.Core.Imaging;
+using WpfBrush = System.Windows.Media.Brush;
+using WpfBrushes = System.Windows.Media.Brushes;
+using WpfImage = System.Windows.Controls.Image;
 using WpfPoint = System.Windows.Point;
+using WpfTextBox = System.Windows.Controls.TextBox;
 using WpfRectangle = System.Windows.Shapes.Rectangle;
 
 namespace Thinksnap.App.Controls;
@@ -18,7 +22,7 @@ public sealed class AnnotationCanvas : Canvas
     private const double MinimumDragDistance = 2;
     private const int PixelateBlockSize = 12;
 
-    private readonly Image baseImage = new();
+    private readonly WpfImage baseImage = new();
     private readonly List<AnnotationOperation> operations = [];
     private readonly List<UndoEntry> undoEntries = [];
     private readonly List<PointD> penPoints = [];
@@ -29,7 +33,7 @@ public sealed class AnnotationCanvas : Canvas
 
     public AnnotationCanvas()
     {
-        Background = Brushes.Transparent;
+        Background = WpfBrushes.Transparent;
         ClipToBounds = true;
         Children.Add(baseImage);
     }
@@ -117,7 +121,7 @@ public sealed class AnnotationCanvas : Canvas
         e.Handled = true;
     }
 
-    protected override void OnMouseMove(MouseEventArgs e)
+    protected override void OnMouseMove(System.Windows.Input.MouseEventArgs e)
     {
         base.OnMouseMove(e);
 
@@ -167,7 +171,7 @@ public sealed class AnnotationCanvas : Canvas
         {
             AnnotationTool.Line => AddLine(start),
             AnnotationTool.Arrow => AddArrow(start),
-            AnnotationTool.Rectangle => AddRectangle(start, fill: Brushes.Transparent),
+            AnnotationTool.Rectangle => AddRectangle(start, fill: WpfBrushes.Transparent),
             AnnotationTool.Pixelate => AddPixelateSelection(start),
             AnnotationTool.Pen => AddPen(start),
             _ => []
@@ -206,7 +210,7 @@ public sealed class AnnotationCanvas : Canvas
         return [line, head];
     }
 
-    private UIElement[] AddRectangle(WpfPoint start, Brush fill)
+    private UIElement[] AddRectangle(WpfPoint start, WpfBrush fill)
     {
         var rectangle = new WpfRectangle
         {
@@ -244,8 +248,8 @@ public sealed class AnnotationCanvas : Canvas
     {
         var rectangle = new WpfRectangle
         {
-            Fill = Brushes.Transparent,
-            Stroke = Brushes.White,
+            Fill = WpfBrushes.Transparent,
+            Stroke = WpfBrushes.White,
             StrokeThickness = 1,
             StrokeDashArray = [4, 3],
             IsHitTestVisible = false
@@ -259,11 +263,11 @@ public sealed class AnnotationCanvas : Canvas
 
     private void AddText(WpfPoint start)
     {
-        var textBox = new TextBox
+        var textBox = new WpfTextBox
         {
             Text = "Text",
             Foreground = CreateStrokeBrush(),
-            Background = Brushes.Transparent,
+            Background = WpfBrushes.Transparent,
             BorderBrush = CreateStrokeBrush(),
             BorderThickness = new Thickness(1),
             MinWidth = 80
@@ -443,7 +447,7 @@ public sealed class AnnotationCanvas : Canvas
         return distance >= MinimumDragDistance;
     }
 
-    private void UpdateTextOperation(int operationIndex, TextBox textBox)
+    private void UpdateTextOperation(int operationIndex, WpfTextBox textBox)
     {
         if (operationIndex >= operations.Count ||
             operationIndex >= undoEntries.Count ||
@@ -541,9 +545,9 @@ public sealed class AnnotationCanvas : Canvas
         return Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
     }
 
-    private Brush CreateStrokeBrush()
+    private WpfBrush CreateStrokeBrush()
     {
-        return (Brush)new BrushConverter().ConvertFromString(StrokeColor)!;
+        return (WpfBrush)new BrushConverter().ConvertFromString(StrokeColor)!;
     }
 
     private static PointD ToPointD(WpfPoint point)
