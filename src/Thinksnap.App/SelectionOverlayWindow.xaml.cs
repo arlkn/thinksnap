@@ -36,6 +36,7 @@ public partial class SelectionOverlayWindow : Window
         this.screenCapture = screenCapture;
         this.captureService = captureService;
         toolButtons = [PixelateButton, ArrowButton, LineButton, RectangleButton, PenButton, TextButton];
+        FrozenScreenImage.Source = captureService.ToBitmapSource(screenCapture);
 
         Left = SystemParameters.VirtualScreenLeft;
         Top = SystemParameters.VirtualScreenTop;
@@ -121,6 +122,7 @@ public partial class SelectionOverlayWindow : Window
 
         OverlayCanvas.Visibility = Visibility.Collapsed;
         SelectionRectangle.Visibility = Visibility.Collapsed;
+        InstructionPanel.Visibility = Visibility.Collapsed;
         EditorLayer.Visibility = Visibility.Visible;
         Cursor = WpfCursors.Arrow;
         ResultMessage = $"Editing {selectedRegion.Width}x{selectedRegion.Height} region.";

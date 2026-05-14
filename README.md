@@ -13,6 +13,8 @@ Thinksnap is a lightweight Windows screenshot MVP inspired by Flameshot. It focu
 dotnet run --project src/Thinksnap.App/Thinksnap.App.csproj
 ```
 
+Thinksnap runs from the system tray. Right-click the tray icon and choose `Take Screenshot`, or press `PrintScreen`.
+
 ## Test
 
 ```powershell

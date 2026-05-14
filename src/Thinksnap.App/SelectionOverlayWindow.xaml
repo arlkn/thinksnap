@@ -12,23 +12,27 @@
         KeyDown="Window_KeyDown">
     <Window.Resources>
         <Style TargetType="Button">
-            <Setter Property="MinWidth" Value="38" />
-            <Setter Property="Height" Value="34" />
-            <Setter Property="Margin" Value="3,0" />
-            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="MinWidth" Value="74" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="Padding" Value="12,0" />
             <Setter Property="Foreground" Value="#F4F7FB" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
     </Window.Resources>
 
     <Grid>
+        <Image x:Name="FrozenScreenImage"
+               Stretch="Fill"
+               IsHitTestVisible="False" />
+
         <Canvas x:Name="OverlayCanvas"
-                Background="#66000000"
+                Background="#55000000"
                 MouseLeftButtonDown="OverlayCanvas_MouseLeftButtonDown"
                 MouseMove="OverlayCanvas_MouseMove"
                 MouseLeftButtonUp="OverlayCanvas_MouseLeftButtonUp">
@@ -40,9 +44,30 @@
                        Fill="#22FFFFFF" />
         </Canvas>
 
+        <Border x:Name="InstructionPanel"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Center"
+                Margin="0,28,0,0"
+                Padding="16,10"
+                Background="#E0181D24"
+                BorderBrush="#34404D"
+                BorderThickness="1"
+                CornerRadius="8"
+                IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="1. Drag to select"
+                           Foreground="#F4F7FB"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="   2. Edit with toolbar   3. Copy or Save"
+                           Foreground="#B9C3CF" />
+                <TextBlock Text="   Esc cancels"
+                           Foreground="#8F9AAA" />
+            </StackPanel>
+        </Border>
+
         <Grid x:Name="EditorLayer"
               Visibility="Collapsed"
-              Background="#D9111418">
+              Background="#80111418">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -71,14 +96,14 @@
                     BorderThickness="1"
                     CornerRadius="8">
                 <StackPanel Orientation="Horizontal">
-                    <Button x:Name="PixelateButton" Content="Px" ToolTip="Pixelate" Click="PixelateButton_Click" />
-                    <Button x:Name="ArrowButton" Content="↗" ToolTip="Arrow" Click="ArrowButton_Click" />
-                    <Button x:Name="LineButton" Content="／" ToolTip="Line" Click="LineButton_Click" />
-                    <Button x:Name="RectangleButton" Content="□" ToolTip="Rectangle" Click="RectangleButton_Click" />
-                    <Button x:Name="PenButton" Content="✎" ToolTip="Pen" Click="PenButton_Click" />
+                    <Button x:Name="PixelateButton" Content="Pixelate" ToolTip="Pixelate" Click="PixelateButton_Click" />
+                    <Button x:Name="ArrowButton" Content="Arrow" ToolTip="Arrow" Click="ArrowButton_Click" />
+                    <Button x:Name="LineButton" Content="Line" ToolTip="Line" Click="LineButton_Click" />
+                    <Button x:Name="RectangleButton" Content="Rect" ToolTip="Rectangle" Click="RectangleButton_Click" />
+                    <Button x:Name="PenButton" Content="Pen" ToolTip="Pen" Click="PenButton_Click" />
                     <Button x:Name="TextButton" Content="T" ToolTip="Text" Click="TextButton_Click" />
                     <Separator Margin="8,0" />
-                    <Button Content="↶" ToolTip="Undo" Click="UndoButton_Click" />
+                    <Button Content="Undo" ToolTip="Undo" Click="UndoButton_Click" />
                     <Separator Margin="8,0" />
                     <Button Content="Copy" ToolTip="Copy to clipboard" Click="CopyButton_Click" />
                     <Button Content="Save" ToolTip="Save PNG" Click="SaveButton_Click" />
