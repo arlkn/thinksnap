@@ -87,4 +87,40 @@ public sealed class EditHistoryTests
         Assert.Equal(new PointD(1, 2), operation.Points[0]);
         Assert.IsNotType<PointD[]>(operation.Points);
     }
+
+    [Fact]
+    public void TextOperationStoresEditableBounds()
+    {
+        var bounds = new RectD(10, 20, 160, 48);
+
+        var operation = AnnotationOperation.TextLabel(
+            bounds,
+            "Hello",
+            "#ff0000",
+            fontSize: 24,
+            isBold: true,
+            textAlignment: TextAnnotationAlignment.Center,
+            backgroundColor: "#ffffff");
+
+        Assert.Equal(AnnotationTool.Text, operation.Tool);
+        Assert.Equal(bounds, operation.Bounds);
+        Assert.Equal(new PointD(10, 20), operation.Start);
+        Assert.Equal("Hello", operation.Text);
+        Assert.Equal(24, operation.FontSize);
+        Assert.True(operation.IsBold);
+        Assert.Equal(TextAnnotationAlignment.Center, operation.TextAlignment);
+        Assert.Equal("#ffffff", operation.BackgroundColor);
+    }
+
+    [Fact]
+    public void RedactionOperationStoresStyleForDetectionReadyMetadata()
+    {
+        var bounds = new RectD(12, 24, 36, 48);
+
+        var operation = AnnotationOperation.Redaction(bounds, RedactionStyle.Blackout);
+
+        Assert.Equal(AnnotationTool.Pixelate, operation.Tool);
+        Assert.Equal(bounds, operation.Bounds);
+        Assert.Equal(RedactionStyle.Blackout, operation.RedactionStyle);
+    }
 }

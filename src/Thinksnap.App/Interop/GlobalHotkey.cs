@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using Thinksnap.Core.Hotkeys;
 
 namespace Thinksnap.App.Interop;
 
@@ -15,8 +16,9 @@ public sealed class GlobalHotkey : IDisposable
     private readonly int id;
     private bool disposed;
 
-    public GlobalHotkey(IntPtr windowHandle, uint virtualKey, Action callback)
+    public GlobalHotkey(IntPtr windowHandle, HotkeyGesture gesture, Action callback)
     {
+        ArgumentNullException.ThrowIfNull(gesture);
         ArgumentNullException.ThrowIfNull(callback);
 
         source = HwndSource.FromHwnd(windowHandle)
@@ -24,7 +26,7 @@ public sealed class GlobalHotkey : IDisposable
         this.callback = callback;
         id = Interlocked.Increment(ref nextId);
 
-        if (!RegisterHotKey(windowHandle, id, 0, virtualKey))
+        if (!RegisterHotKey(windowHandle, id, gesture.WindowsModifierFlags, gesture.VirtualKey))
         {
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }

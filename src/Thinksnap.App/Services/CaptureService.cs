@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using DrawingPoint = System.Drawing.Point;
 using DrawingRectangle = System.Drawing.Rectangle;
 using FormsSystemInformation = System.Windows.Forms.SystemInformation;
+using FormsScreen = System.Windows.Forms.Screen;
 
 namespace Thinksnap.App.Services;
 
@@ -13,7 +14,18 @@ public sealed class CaptureService
 {
     public Bitmap CaptureVirtualScreen()
     {
-        var bounds = FormsSystemInformation.VirtualScreen;
+        return CaptureBounds(FormsSystemInformation.VirtualScreen);
+    }
+
+    public Bitmap CaptureScreen(FormsScreen screen)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+
+        return CaptureBounds(screen.Bounds);
+    }
+
+    private static Bitmap CaptureBounds(DrawingRectangle bounds)
+    {
         var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
 
         using var graphics = Graphics.FromImage(bitmap);

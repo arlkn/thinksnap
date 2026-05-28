@@ -12,7 +12,12 @@ public sealed record AnnotationOperation
         ImmutableArray<PointD> points,
         string? text,
         string color,
-        double strokeThickness)
+        double strokeThickness,
+        RedactionStyle? redactionStyle,
+        double fontSize,
+        bool isBold,
+        TextAnnotationAlignment textAlignment,
+        string? backgroundColor)
     {
         Tool = tool;
         Bounds = bounds;
@@ -22,6 +27,11 @@ public sealed record AnnotationOperation
         Text = text;
         Color = color;
         StrokeThickness = strokeThickness;
+        RedactionStyle = redactionStyle;
+        FontSize = fontSize;
+        IsBold = isBold;
+        TextAlignment = textAlignment;
+        BackgroundColor = backgroundColor;
     }
 
     public AnnotationTool Tool { get; }
@@ -40,7 +50,22 @@ public sealed record AnnotationOperation
 
     public double StrokeThickness { get; }
 
+    public RedactionStyle? RedactionStyle { get; }
+
+    public double FontSize { get; }
+
+    public bool IsBold { get; }
+
+    public TextAnnotationAlignment TextAlignment { get; }
+
+    public string? BackgroundColor { get; }
+
     public static AnnotationOperation Pixelate(RectD bounds)
+    {
+        return Redaction(bounds, Annotations.RedactionStyle.Pixelate);
+    }
+
+    public static AnnotationOperation Redaction(RectD bounds, RedactionStyle redactionStyle)
     {
         return new AnnotationOperation(
             AnnotationTool.Pixelate,
@@ -50,7 +75,12 @@ public sealed record AnnotationOperation
             ImmutableArray<PointD>.Empty,
             null,
             "#ff0000",
-            0);
+            0,
+            redactionStyle,
+            0,
+            false,
+            TextAnnotationAlignment.Left,
+            null);
     }
 
     public static AnnotationOperation Arrow(PointD start, PointD end, string color, double strokeThickness)
@@ -63,7 +93,12 @@ public sealed record AnnotationOperation
             ImmutableArray<PointD>.Empty,
             null,
             color,
-            strokeThickness);
+            strokeThickness,
+            null,
+            0,
+            false,
+            TextAnnotationAlignment.Left,
+            null);
     }
 
     public static AnnotationOperation Line(PointD start, PointD end, string color, double strokeThickness)
@@ -76,7 +111,12 @@ public sealed record AnnotationOperation
             ImmutableArray<PointD>.Empty,
             null,
             color,
-            strokeThickness);
+            strokeThickness,
+            null,
+            0,
+            false,
+            TextAnnotationAlignment.Left,
+            null);
     }
 
     public static AnnotationOperation Rectangle(RectD bounds, string color, double strokeThickness)
@@ -89,7 +129,12 @@ public sealed record AnnotationOperation
             ImmutableArray<PointD>.Empty,
             null,
             color,
-            strokeThickness);
+            strokeThickness,
+            null,
+            0,
+            false,
+            TextAnnotationAlignment.Left,
+            null);
     }
 
     public static AnnotationOperation Pen(IReadOnlyList<PointD> points, string color, double strokeThickness)
@@ -104,19 +149,41 @@ public sealed record AnnotationOperation
             points.ToImmutableArray(),
             null,
             color,
-            strokeThickness);
+            strokeThickness,
+            null,
+            0,
+            false,
+            TextAnnotationAlignment.Left,
+            null);
     }
 
     public static AnnotationOperation TextLabel(PointD start, string text, string color)
     {
+        return TextLabel(new RectD(start.X, start.Y, 0, 0), text, color);
+    }
+
+    public static AnnotationOperation TextLabel(
+        RectD bounds,
+        string text,
+        string color,
+        double fontSize = 18,
+        bool isBold = false,
+        TextAnnotationAlignment textAlignment = TextAnnotationAlignment.Left,
+        string? backgroundColor = null)
+    {
         return new AnnotationOperation(
             AnnotationTool.Text,
-            null,
-            start,
+            bounds,
+            new PointD(bounds.X, bounds.Y),
             null,
             ImmutableArray<PointD>.Empty,
             text,
             color,
-            0);
+            0,
+            null,
+            fontSize,
+            isBold,
+            textAlignment,
+            backgroundColor);
     }
 }

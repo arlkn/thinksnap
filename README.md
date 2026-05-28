@@ -21,6 +21,14 @@ Thinksnap runs from the system tray. Right-click the tray icon and choose `Take 
 dotnet test Thinksnap.sln
 ```
 
+## Publish
+
+```powershell
+dotnet publish src/Thinksnap.App/Thinksnap.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o artifacts/publish/win-x64
+```
+
+The single-file executable is written to `artifacts/publish/win-x64/Thinksnap.exe`.
+
 ## MVP Scope
 
 - Capture a selected screen region.

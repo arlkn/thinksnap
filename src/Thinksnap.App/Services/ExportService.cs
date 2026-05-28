@@ -13,7 +13,7 @@ public sealed class ExportService
         System.Windows.Clipboard.SetImage(bitmap);
     }
 
-    public bool SavePng(BitmapSource bitmap, Window? owner = null)
+    public bool SavePng(BitmapSource bitmap, Window? owner = null, string? fileNamePattern = null)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
@@ -22,7 +22,7 @@ public sealed class ExportService
             AddExtension = true,
             DefaultExt = ".png",
             Filter = "PNG image (*.png)|*.png",
-            FileName = "thinksnap.png",
+            FileName = CreateFileName(fileNamePattern),
             OverwritePrompt = true
         };
 
@@ -39,5 +39,39 @@ public sealed class ExportService
         encoder.Save(stream);
 
         return true;
+    }
+
+    private static string CreateFileName(string? pattern)
+    {
+        var value = string.IsNullOrWhiteSpace(pattern)
+            ? "thinksnap-{yyyyMMdd-HHmmss}.png"
+            : pattern.Trim();
+
+        var fileName = System.Text.RegularExpressions.Regex.Replace(
+            value,
+            "\\{([^{}]+)\\}",
+            match =>
+            {
+                try
+                {
+                    return DateTime.Now.ToString(match.Groups[1].Value);
+                }
+                catch (FormatException)
+                {
+                    return string.Empty;
+                }
+            });
+
+        if (fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) is false)
+        {
+            fileName += ".png";
+        }
+
+        foreach (var invalidCharacter in System.IO.Path.GetInvalidFileNameChars())
+        {
+            fileName = fileName.Replace(invalidCharacter, '-');
+        }
+
+        return fileName;
     }
 }

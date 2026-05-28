@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -10,6 +11,7 @@ using WpfBrush = System.Windows.Media.Brush;
 using WpfBrushes = System.Windows.Media.Brushes;
 using WpfImage = System.Windows.Controls.Image;
 using WpfPoint = System.Windows.Point;
+using WpfGrid = System.Windows.Controls.Grid;
 using WpfTextBox = System.Windows.Controls.TextBox;
 using WpfRectangle = System.Windows.Shapes.Rectangle;
 
@@ -21,6 +23,7 @@ public sealed class AnnotationCanvas : Canvas
     private const double DefaultStrokeThickness = 3;
     private const double MinimumDragDistance = 2;
     private const int PixelateBlockSize = 12;
+    private const double DefaultTextFontSize = 18;
 
     private readonly WpfImage baseImage = new();
     private readonly List<AnnotationOperation> operations = [];
@@ -30,6 +33,10 @@ public sealed class AnnotationCanvas : Canvas
     private WriteableBitmap? baseBitmap;
     private WpfPoint? dragStart;
     private UIElement[]? activeVisuals;
+    private WpfGrid? selectedTextContainer;
+    private WpfTextBox? selectedTextBox;
+    private Border? textToolbar;
+    private RedactionStyle lastRedactionStyle = RedactionStyle.Pixelate;
 
     public AnnotationCanvas()
     {
@@ -40,9 +47,21 @@ public sealed class AnnotationCanvas : Canvas
 
     public AnnotationTool ActiveTool { get; set; } = AnnotationTool.Pixelate;
 
+    public RedactionStyle ActiveRedactionStyle { get; set; } = RedactionStyle.Pixelate;
+
     public string StrokeColor { get; set; } = DefaultStroke;
 
     public double StrokeThickness { get; set; } = DefaultStrokeThickness;
+
+    public double TextFontSize { get; set; } = DefaultTextFontSize;
+
+    public bool IsTextBold { get; set; }
+
+    public TextAnnotationAlignment TextAlignment { get; set; } = TextAnnotationAlignment.Left;
+
+    public string? TextBackgroundColor { get; set; }
+
+    public bool ShowTextMoveHandles { get; set; } = true;
 
     public IReadOnlyList<AnnotationOperation> Operations => operations.ToArray();
 
@@ -60,6 +79,22 @@ public sealed class AnnotationCanvas : Canvas
         baseImage.Height = baseBitmap.PixelHeight;
         Width = baseBitmap.PixelWidth;
         Height = baseBitmap.PixelHeight;
+    }
+
+    public void ResetImage(BitmapSource source)
+    {
+        Children.Clear();
+        Children.Add(baseImage);
+        operations.Clear();
+        undoEntries.Clear();
+        penPoints.Clear();
+        activeVisuals = null;
+        dragStart = null;
+        selectedTextContainer = null;
+        selectedTextBox = null;
+        textToolbar = null;
+
+        SetImage(source);
     }
 
     public void Undo()
@@ -90,15 +125,29 @@ public sealed class AnnotationCanvas : Canvas
 
     public RenderTargetBitmap RenderOutput()
     {
+        SetEditingChromeVisibility(Visibility.Collapsed);
         UpdateLayout();
 
-        var width = Math.Max(1, (int)Math.Ceiling(Width));
-        var height = Math.Max(1, (int)Math.Ceiling(Height));
-        var output = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-        output.Render(this);
-        output.Freeze();
+        try
+        {
+            var width = Math.Max(1, (int)Math.Ceiling(Width));
+            var height = Math.Max(1, (int)Math.Ceiling(Height));
+            var output = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            output.Render(this);
+            output.Freeze();
 
-        return output;
+            return output;
+        }
+        finally
+        {
+            SetEditingChromeVisibility(Visibility.Visible);
+        }
+    }
+
+    public void RepeatLastRedactionStyle()
+    {
+        ActiveTool = AnnotationTool.Pixelate;
+        ActiveRedactionStyle = lastRedactionStyle;
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -263,26 +312,92 @@ public sealed class AnnotationCanvas : Canvas
 
     private void AddText(WpfPoint start)
     {
+        var operationIndex = operations.Count;
+        var container = new WpfGrid
+        {
+            Width = 160,
+            Height = 48,
+            MinWidth = 80,
+            MinHeight = 32
+        };
+
         var textBox = new WpfTextBox
         {
             Text = "Text",
             Foreground = CreateStrokeBrush(),
-            Background = WpfBrushes.Transparent,
+            Background = CreateTextBackgroundBrush(),
             BorderBrush = CreateStrokeBrush(),
             BorderThickness = new Thickness(1),
-            MinWidth = 80
+            Padding = new Thickness(6, 4, 18, 4),
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            FontSize = TextFontSize,
+            FontWeight = IsTextBold ? FontWeights.Bold : FontWeights.Normal,
+            TextAlignment = ToWpfTextAlignment(TextAlignment)
         };
 
-        SetLeft(textBox, start.X);
-        SetTop(textBox, start.Y);
-        Children.Add(textBox);
+        var resizeThumb = new Thumb
+        {
+            Width = 13,
+            Height = 13,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Cursor = System.Windows.Input.Cursors.SizeNWSE,
+            Background = CreateStrokeBrush(),
+            Opacity = 0.9
+        };
+
+        resizeThumb.DragDelta += (_, args) =>
+        {
+            container.Width = Math.Max(container.MinWidth, container.Width + args.HorizontalChange);
+            container.Height = Math.Max(container.MinHeight, container.Height + args.VerticalChange);
+            PositionTextToolbar(container);
+            UpdateTextOperation(operationIndex, container, textBox);
+        };
+
+        container.Children.Add(textBox);
+
+        if (ShowTextMoveHandles)
+        {
+            var moveThumb = new Thumb
+            {
+                Width = 54,
+                Height = 13,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Cursor = System.Windows.Input.Cursors.SizeAll,
+                Background = CreateStrokeBrush(),
+                Opacity = 0.9
+            };
+
+            moveThumb.DragDelta += (_, args) =>
+            {
+                var nextLeft = Math.Clamp(GetLeft(container) + args.HorizontalChange, 0, Math.Max(0, Width - container.Width));
+                var nextTop = Math.Clamp(GetTop(container) + args.VerticalChange, 0, Math.Max(0, Height - container.Height));
+                SetLeft(container, nextLeft);
+                SetTop(container, nextTop);
+                PositionTextToolbar(container);
+                UpdateTextOperation(operationIndex, container, textBox);
+            };
+
+            container.Children.Add(moveThumb);
+        }
+
+        container.Children.Add(resizeThumb);
+        container.GotKeyboardFocus += (_, _) => SelectTextContainer(container, textBox);
+        container.MouseLeftButtonDown += (_, _) => SelectTextContainer(container, textBox);
+
+        SetLeft(container, start.X);
+        SetTop(container, start.Y);
+        Children.Add(container);
+        SelectTextContainer(container, textBox);
         textBox.Focus();
         textBox.SelectAll();
 
-        var operationIndex = operations.Count;
-        operations.Add(AnnotationOperation.TextLabel(ToPointD(start), textBox.Text, StrokeColor));
-        undoEntries.Add(new UndoEntry([textBox], PreviousBitmapPixels: null));
-        textBox.TextChanged += (_, _) => UpdateTextOperation(operationIndex, textBox);
+        operations.Add(CreateTextOperation(container, textBox));
+        undoEntries.Add(new UndoEntry([container], PreviousBitmapPixels: null));
+        textBox.TextChanged += (_, _) => UpdateTextOperation(operationIndex, container, textBox);
     }
 
     private void UpdateActiveVisuals(WpfPoint start, WpfPoint end)
@@ -388,13 +503,30 @@ public sealed class AnnotationCanvas : Canvas
 
         var rect = ToRectD(start, end);
         var previousPixels = CopyBitmapPixels();
-        ApplyPixelate(rect);
+        ApplyRedaction(rect, ActiveRedactionStyle);
 
-        operations.Add(AnnotationOperation.Pixelate(rect));
+        lastRedactionStyle = ActiveRedactionStyle;
+        operations.Add(AnnotationOperation.Redaction(rect, ActiveRedactionStyle));
         undoEntries.Add(new UndoEntry([], previousPixels));
     }
 
-    private void ApplyPixelate(RectD rect)
+    private void ApplyRedaction(RectD rect, RedactionStyle style)
+    {
+        switch (style)
+        {
+            case RedactionStyle.Blackout:
+                FillBitmapRect(rect, System.Windows.Media.Color.FromRgb(0, 0, 0));
+                break;
+            case RedactionStyle.Blur:
+                ApplyPixelate(rect, blockSize: 6);
+                break;
+            default:
+                ApplyPixelate(rect, PixelateBlockSize);
+                break;
+        }
+    }
+
+    private void ApplyPixelate(RectD rect, int blockSize)
     {
         if (baseBitmap is null)
         {
@@ -414,10 +546,42 @@ public sealed class AnnotationCanvas : Canvas
             (int)Math.Floor(rect.Y),
             (int)Math.Ceiling(rect.Width),
             (int)Math.Ceiling(rect.Height),
-            PixelateBlockSize);
+            blockSize);
 
         var pixelatedBytes = ToBgraBytes(pixelated);
         baseBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixelatedBytes, stride, 0);
+    }
+
+    private void FillBitmapRect(RectD rect, System.Windows.Media.Color color)
+    {
+        if (baseBitmap is null)
+        {
+            return;
+        }
+
+        var left = Math.Clamp((int)Math.Floor(rect.X), 0, baseBitmap.PixelWidth);
+        var top = Math.Clamp((int)Math.Floor(rect.Y), 0, baseBitmap.PixelHeight);
+        var right = Math.Clamp((int)Math.Ceiling(rect.X + rect.Width), 0, baseBitmap.PixelWidth);
+        var bottom = Math.Clamp((int)Math.Ceiling(rect.Y + rect.Height), 0, baseBitmap.PixelHeight);
+        var width = right - left;
+        var height = bottom - top;
+
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        var stride = width * 4;
+        var pixels = new byte[stride * height];
+        for (var index = 0; index < pixels.Length; index += 4)
+        {
+            pixels[index] = color.B;
+            pixels[index + 1] = color.G;
+            pixels[index + 2] = color.R;
+            pixels[index + 3] = color.A;
+        }
+
+        baseBitmap.WritePixels(new Int32Rect(left, top, width, height), pixels, stride, 0);
     }
 
     private bool IsMeaningfulOperation(WpfPoint start, WpfPoint end)
@@ -447,22 +611,20 @@ public sealed class AnnotationCanvas : Canvas
         return distance >= MinimumDragDistance;
     }
 
-    private void UpdateTextOperation(int operationIndex, WpfTextBox textBox)
+    private void UpdateTextOperation(int operationIndex, WpfGrid container, WpfTextBox textBox)
     {
-        if (operationIndex >= operations.Count ||
-            operationIndex >= undoEntries.Count ||
-            Array.IndexOf(undoEntries[operationIndex].Visuals, textBox) < 0)
+        if (operationIndex >= operations.Count)
         {
             return;
         }
 
         var current = operations[operationIndex];
-        if (current.Tool != AnnotationTool.Text || current.Start is not { } position)
+        if (current.Tool != AnnotationTool.Text)
         {
             return;
         }
 
-        operations[operationIndex] = AnnotationOperation.TextLabel(position, textBox.Text, current.Color);
+        operations[operationIndex] = CreateTextOperation(container, textBox);
     }
 
     private void RemoveVisuals(IEnumerable<UIElement> visuals)
@@ -470,6 +632,201 @@ public sealed class AnnotationCanvas : Canvas
         foreach (var visual in visuals)
         {
             Children.Remove(visual);
+        }
+    }
+
+    private void SelectTextContainer(WpfGrid container, WpfTextBox textBox)
+    {
+        selectedTextContainer = container;
+        selectedTextBox = textBox;
+        ShowTextToolbar(container);
+    }
+
+    private void ShowTextToolbar(WpfGrid container)
+    {
+        if (textToolbar is null)
+        {
+            textToolbar = CreateTextToolbar();
+            Children.Add(textToolbar);
+        }
+
+        textToolbar.Visibility = Visibility.Visible;
+        PositionTextToolbar(container);
+    }
+
+    private Border CreateTextToolbar()
+    {
+        var panel = new StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal
+        };
+
+        panel.Children.Add(CreateTextToolbarButton("A-", DecreaseTextSize));
+        panel.Children.Add(CreateTextToolbarButton("A+", IncreaseTextSize));
+        panel.Children.Add(CreateTextToolbarButton("B", ToggleTextBold));
+        panel.Children.Add(CreateTextToolbarButton("≡", CycleTextAlignment));
+        panel.Children.Add(CreateTextToolbarButton("◩", ToggleTextBackground));
+        panel.Children.Add(CreateTextToolbarButton("●", CycleTextColor));
+        panel.Children.Add(CreateTextToolbarButton("×", DeleteSelectedText));
+
+        return new Border
+        {
+            Child = panel,
+            Padding = new Thickness(5),
+            CornerRadius = new CornerRadius(16),
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(235, 24, 29, 36)),
+            BorderBrush = CreateStrokeBrush(),
+            BorderThickness = new Thickness(1)
+        };
+    }
+
+    private System.Windows.Controls.Button CreateTextToolbarButton(string label, Action action)
+    {
+        var button = new System.Windows.Controls.Button
+        {
+            Content = label,
+            Width = 32,
+            Height = 28,
+            Margin = new Thickness(2, 0, 2, 0),
+            Padding = new Thickness(0),
+            Foreground = WpfBrushes.White,
+            Background = WpfBrushes.Transparent,
+            BorderBrush = CreateStrokeBrush(),
+            BorderThickness = new Thickness(1),
+            FontWeight = FontWeights.SemiBold,
+            Cursor = System.Windows.Input.Cursors.Hand
+        };
+
+        button.Click += (_, _) => action();
+        return button;
+    }
+
+    private void PositionTextToolbar(FrameworkElement container)
+    {
+        if (textToolbar is null)
+        {
+            return;
+        }
+
+        textToolbar.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+        SetLeft(textToolbar, Math.Max(0, GetLeft(container)));
+        SetTop(textToolbar, Math.Max(0, GetTop(container) - textToolbar.DesiredSize.Height - 8));
+    }
+
+    private void DecreaseTextSize() => ChangeSelectedText(textBox => textBox.FontSize = Math.Max(10, textBox.FontSize - 2));
+
+    private void IncreaseTextSize() => ChangeSelectedText(textBox => textBox.FontSize = Math.Min(72, textBox.FontSize + 2));
+
+    private void ToggleTextBold()
+    {
+        ChangeSelectedText(textBox =>
+        {
+            textBox.FontWeight = textBox.FontWeight == FontWeights.Bold ? FontWeights.Normal : FontWeights.Bold;
+        });
+    }
+
+    private void CycleTextAlignment()
+    {
+        ChangeSelectedText(textBox =>
+        {
+            textBox.TextAlignment = textBox.TextAlignment switch
+            {
+                System.Windows.TextAlignment.Left => System.Windows.TextAlignment.Center,
+                System.Windows.TextAlignment.Center => System.Windows.TextAlignment.Right,
+                _ => System.Windows.TextAlignment.Left
+            };
+        });
+    }
+
+    private void ToggleTextBackground()
+    {
+        ChangeSelectedText(textBox =>
+        {
+            textBox.Background = textBox.Background == WpfBrushes.Transparent
+                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(210, 0, 0, 0))
+                : WpfBrushes.Transparent;
+        });
+    }
+
+    private void CycleTextColor()
+    {
+        ChangeSelectedText(textBox =>
+        {
+            var current = (textBox.Foreground as SolidColorBrush)?.Color.ToString();
+            var next = current switch
+            {
+                "#FFFF0000" => "#FFFFFFFF",
+                "#FFFFFFFF" => "#FF22C55E",
+                "#FF22C55E" => "#FFF97316",
+                _ => StrokeColor
+            };
+            textBox.Foreground = (WpfBrush)new BrushConverter().ConvertFromString(next)!;
+            textBox.BorderBrush = textBox.Foreground;
+        });
+    }
+
+    private void DeleteSelectedText()
+    {
+        if (selectedTextContainer is null)
+        {
+            return;
+        }
+
+        var operationIndex = FindOperationIndex(selectedTextContainer);
+        Children.Remove(selectedTextContainer);
+        if (operationIndex >= 0)
+        {
+            undoEntries.RemoveAt(operationIndex);
+            operations.RemoveAt(operationIndex);
+        }
+
+        if (textToolbar is not null)
+        {
+            textToolbar.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void ChangeSelectedText(Action<WpfTextBox> update)
+    {
+        if (selectedTextBox is null || selectedTextContainer is null)
+        {
+            return;
+        }
+
+        update(selectedTextBox);
+        var operationIndex = FindOperationIndex(selectedTextContainer);
+        if (operationIndex >= 0)
+        {
+            UpdateTextOperation(operationIndex, selectedTextContainer, selectedTextBox);
+        }
+    }
+
+    private int FindOperationIndex(UIElement visual)
+    {
+        for (var index = 0; index < undoEntries.Count; index++)
+        {
+            if (Array.IndexOf(undoEntries[index].Visuals, visual) >= 0)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private void SetEditingChromeVisibility(Visibility visibility)
+    {
+        foreach (var child in Children.OfType<WpfGrid>())
+        {
+            foreach (var thumb in child.Children.OfType<Thumb>())
+            {
+                thumb.Visibility = visibility;
+            }
+        }
+
+        if (textToolbar is not null)
+        {
+            textToolbar.Visibility = visibility;
         }
     }
 
@@ -550,6 +907,45 @@ public sealed class AnnotationCanvas : Canvas
         return (WpfBrush)new BrushConverter().ConvertFromString(StrokeColor)!;
     }
 
+    private WpfBrush CreateTextBackgroundBrush()
+    {
+        return string.IsNullOrWhiteSpace(TextBackgroundColor)
+            ? WpfBrushes.Transparent
+            : (WpfBrush)new BrushConverter().ConvertFromString(TextBackgroundColor)!;
+    }
+
+    private AnnotationOperation CreateTextOperation(WpfGrid container, WpfTextBox textBox)
+    {
+        return AnnotationOperation.TextLabel(
+            ToRectD(container),
+            textBox.Text,
+            ((SolidColorBrush)textBox.Foreground).Color.ToString(),
+            textBox.FontSize,
+            textBox.FontWeight == FontWeights.Bold,
+            ToTextAnnotationAlignment(textBox.TextAlignment),
+            textBox.Background == WpfBrushes.Transparent ? null : ((SolidColorBrush)textBox.Background).Color.ToString());
+    }
+
+    private static System.Windows.TextAlignment ToWpfTextAlignment(TextAnnotationAlignment alignment)
+    {
+        return alignment switch
+        {
+            TextAnnotationAlignment.Center => System.Windows.TextAlignment.Center,
+            TextAnnotationAlignment.Right => System.Windows.TextAlignment.Right,
+            _ => System.Windows.TextAlignment.Left
+        };
+    }
+
+    private static TextAnnotationAlignment ToTextAnnotationAlignment(System.Windows.TextAlignment alignment)
+    {
+        return alignment switch
+        {
+            System.Windows.TextAlignment.Center => TextAnnotationAlignment.Center,
+            System.Windows.TextAlignment.Right => TextAnnotationAlignment.Right,
+            _ => TextAnnotationAlignment.Left
+        };
+    }
+
     private static PointD ToPointD(WpfPoint point)
     {
         return new PointD(point.X, point.Y);
@@ -561,6 +957,14 @@ public sealed class AnnotationCanvas : Canvas
         var top = Math.Min(start.Y, end.Y);
 
         return new RectD(left, top, Math.Abs(end.X - start.X), Math.Abs(end.Y - start.Y));
+    }
+
+    private static RectD ToRectD(FrameworkElement element)
+    {
+        var width = element.ActualWidth > 0 ? element.ActualWidth : element.Width;
+        var height = element.ActualHeight > 0 ? element.ActualHeight : element.Height;
+
+        return new RectD(GetLeft(element), GetTop(element), width, height);
     }
 
     private sealed record UndoEntry(UIElement[] Visuals, byte[]? PreviousBitmapPixels);

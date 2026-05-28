@@ -6,12 +6,15 @@
         Width="520"
         MinHeight="300"
         MinWidth="480"
-        ShowInTaskbar="False"
+        ShowInTaskbar="True"
         WindowStartupLocation="CenterScreen"
-        Background="#111418">
+        Icon="Assets/extension_icon.ico"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Background="{DynamicResource AppBackgroundBrush}">
     <Window.Resources>
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#2F80ED" />
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="18,10" />
@@ -23,8 +26,8 @@
 
     <Border Margin="22"
             Padding="28"
-            Background="#181D24"
-            BorderBrush="#2A313B"
+            Background="{DynamicResource PanelBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrushColor}"
             BorderThickness="1"
             CornerRadius="8">
         <Grid>
@@ -35,24 +38,24 @@
 
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="Thinksnap"
-                           Foreground="#F4F7FB"
+                           Foreground="{DynamicResource PrimaryTextBrush}"
                            FontSize="34"
                            FontWeight="SemiBold" />
-                <TextBlock Text="Capture, redact, annotate."
+                <TextBlock Text="Redaction-first screenshots."
                            Margin="0,8,0,0"
-                           Foreground="#9DA7B3"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
                            FontSize="15" />
                 <TextBlock x:Name="StatusText"
                            Margin="0,22,0,0"
-                           Text="Ready for region capture."
-                           Foreground="#C8D0DA"
+                           Text="Use the floating capture icon, tray, or PrintScreen."
+                           Foreground="{DynamicResource PrimaryTextBrush}"
                            FontSize="13" />
             </StackPanel>
 
             <Button x:Name="CaptureButton"
                     Grid.Row="1"
-                    Content="Capture"
-                    Width="180"
+                    Content="Capture now"
+                    Width="150"
                     Height="44"
                     HorizontalAlignment="Left"
                     Click="CaptureButton_Click" />

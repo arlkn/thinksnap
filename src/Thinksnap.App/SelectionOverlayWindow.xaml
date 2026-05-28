@@ -12,17 +12,54 @@
         KeyDown="Window_KeyDown">
     <Window.Resources>
         <Style TargetType="Button">
-            <Setter Property="MinWidth" Value="74" />
-            <Setter Property="Height" Value="40" />
-            <Setter Property="Margin" Value="4,0" />
-            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Margin" Value="5,0" />
+            <Setter Property="Padding" Value="10" />
             <Setter Property="Foreground" Value="#F4F7FB" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushColor}" />
+            <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="22">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#263140" />
+                    <Setter Property="BorderBrush" Value="#8DA2B8" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SelectionHandleThumbStyle" TargetType="Thumb">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="#F0181D24"
+                                BorderBrush="{DynamicResource AccentBrush}"
+                                BorderThickness="1.5"
+                                CornerRadius="7" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <EventSetter Event="DragStarted" Handler="EditorFrameAdjust_DragStarted" />
+            <EventSetter Event="DragDelta" Handler="EditorFrameResizeThumb_DragDelta" />
+            <EventSetter Event="DragCompleted" Handler="EditorFrameAdjust_DragCompleted" />
         </Style>
     </Window.Resources>
 
@@ -58,58 +95,238 @@
                 <TextBlock Text="1. Drag to select"
                            Foreground="#F4F7FB"
                            FontWeight="SemiBold" />
-                <TextBlock Text="   2. Edit with toolbar   3. Copy or Save"
+                <TextBlock Text="   2. Edit immediately   3. Copy or Save"
                            Foreground="#B9C3CF" />
                 <TextBlock Text="   Esc cancels"
                            Foreground="#8F9AAA" />
             </StackPanel>
         </Border>
 
-        <Grid x:Name="EditorLayer"
-              Visibility="Collapsed"
-              Background="#80111418">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+        <Canvas x:Name="EditorLayer"
+                Visibility="Collapsed"
+                Opacity="0"
+                Background="#80111418">
+            <Viewbox x:Name="EditorViewport"
+                     Stretch="Fill"
+                     StretchDirection="Both">
+                <controls:AnnotationCanvas x:Name="CanvasHost" />
+            </Viewbox>
 
-            <Border Grid.Row="0"
-                    Margin="32"
-                    Background="#101318"
-                    BorderBrush="#303844"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    ClipToBounds="True">
-                <Viewbox Stretch="Uniform"
-                         StretchDirection="Both"
-                         Margin="18">
-                    <controls:AnnotationCanvas x:Name="CanvasHost" />
-                </Viewbox>
-            </Border>
+            <Border x:Name="EditorFrame"
+                    Background="#12FFFFFF"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="2"
+                    CornerRadius="4"
+                    IsHitTestVisible="False" />
 
-            <Border Grid.Row="1"
-                    Margin="0,0,0,28"
-                    Padding="10"
-                    HorizontalAlignment="Center"
-                    Background="#F0181D24"
-                    BorderBrush="#34404D"
-                    BorderThickness="1"
-                    CornerRadius="8">
+            <Thumb x:Name="ResizeTopLeftThumb"
+                   Style="{StaticResource SelectionHandleThumbStyle}"
+                   Cursor="SizeNWSE"
+                   Tag="TopLeft" />
+            <Thumb x:Name="ResizeTopThumb"
+                   Style="{StaticResource SelectionHandleThumbStyle}"
+                   Cursor="SizeNS"
+                   Tag="Top" />
+            <Thumb x:Name="ResizeTopRightThumb"
+                   Style="{StaticResource SelectionHandleThumbStyle}"
+                   Cursor="SizeNESW"
+                   Tag="TopRight" />
+            <Thumb x:Name="ResizeRightThumb"
+                   Style="{StaticResource SelectionHandleThumbStyle}"
+                   Cursor="SizeWE"
+                   Tag="Right" />
+            <Thumb x:Name="EditorFrameResizeThumb"
+                   Style="{StaticResource SelectionHandleThumbStyle}"
+                   Cursor="SizeNWSE"
+                   Tag="BottomRight" />
+            <Thumb x:Name="ResizeBottomThumb"
+                   Style="{StaticResource SelectionHandleThumbStyle}"
+                   Cursor="SizeNS"
+                   Tag="Bottom" />
+            <Thumb x:Name="ResizeBottomLeftThumb"
+                   Style="{StaticResource SelectionHandleThumbStyle}"
+                   Cursor="SizeNESW"
+                   Tag="BottomLeft" />
+            <Thumb x:Name="ResizeLeftThumb"
+                   Style="{StaticResource SelectionHandleThumbStyle}"
+                   Cursor="SizeWE"
+                   Tag="Left" />
+
+            <Thumb x:Name="EditorFrameMoveThumb"
+                   Width="120"
+                   Height="22"
+                   Cursor="SizeAll"
+                   DragStarted="EditorFrameAdjust_DragStarted"
+                   DragDelta="EditorFrameMoveThumb_DragDelta"
+                   DragCompleted="EditorFrameAdjust_DragCompleted">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="#E0181D24"
+                                BorderBrush="{DynamicResource AccentBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <Ellipse Width="3" Height="3" Fill="#F4F7FB" Margin="2,0" />
+                                <Ellipse Width="3" Height="3" Fill="#F4F7FB" Margin="2,0" />
+                                <Ellipse Width="3" Height="3" Fill="#F4F7FB" Margin="2,0" />
+                            </StackPanel>
+                        </Border>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
+
+            <Border x:Name="EditorToolbar"
+                    Padding="12"
+                    Background="{DynamicResource PanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrushColor}"
+                    BorderThickness="1.5"
+                    CornerRadius="28">
                 <StackPanel Orientation="Horizontal">
-                    <Button x:Name="PixelateButton" Content="Pixelate" ToolTip="Pixelate" Click="PixelateButton_Click" />
-                    <Button x:Name="ArrowButton" Content="Arrow" ToolTip="Arrow" Click="ArrowButton_Click" />
-                    <Button x:Name="LineButton" Content="Line" ToolTip="Line" Click="LineButton_Click" />
-                    <Button x:Name="RectangleButton" Content="Rect" ToolTip="Rectangle" Click="RectangleButton_Click" />
-                    <Button x:Name="PenButton" Content="Pen" ToolTip="Pen" Click="PenButton_Click" />
-                    <Button x:Name="TextButton" Content="T" ToolTip="Text" Click="TextButton_Click" />
-                    <Separator Margin="8,0" />
-                    <Button Content="Undo" ToolTip="Undo" Click="UndoButton_Click" />
-                    <Separator Margin="8,0" />
-                    <Button Content="Copy" ToolTip="Copy to clipboard" Click="CopyButton_Click" />
-                    <Button Content="Save" ToolTip="Save PNG" Click="SaveButton_Click" />
-                    <Button Content="Cancel" ToolTip="Cancel" Click="CancelButton_Click" />
+                    <Button x:Name="PixelateButton" ToolTip="Pixelate" Click="PixelateButton_Click">
+                        <UniformGrid Rows="3" Columns="3" Width="21" Height="21">
+                            <Rectangle Fill="#F4F7FB" Margin="1" />
+                            <Rectangle Fill="#F4F7FB" Margin="1" Opacity="0.55" />
+                            <Rectangle Fill="#F4F7FB" Margin="1" />
+                            <Rectangle Fill="#F4F7FB" Margin="1" Opacity="0.55" />
+                            <Rectangle Fill="#F4F7FB" Margin="1" />
+                            <Rectangle Fill="#F4F7FB" Margin="1" Opacity="0.55" />
+                            <Rectangle Fill="#F4F7FB" Margin="1" />
+                            <Rectangle Fill="#F4F7FB" Margin="1" Opacity="0.55" />
+                            <Rectangle Fill="#F4F7FB" Margin="1" />
+                        </UniformGrid>
+                    </Button>
+                    <Button x:Name="BlackoutButton" ToolTip="Blackout" Click="BlackoutButton_Click">
+                        <Rectangle Width="22"
+                                   Height="16"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="#F4F7FB" />
+                    </Button>
+                    <Button x:Name="BlurButton" ToolTip="Soft blur redaction" Click="BlurButton_Click">
+                        <Grid Width="23" Height="23">
+                            <Ellipse Width="13" Height="13" Fill="#F4F7FB" Opacity="0.85" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                            <Ellipse Width="13" Height="13" Fill="#F4F7FB" Opacity="0.45" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            <Ellipse Width="13" Height="13" Fill="#F4F7FB" Opacity="0.65" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                        </Grid>
+                    </Button>
+                    <Button x:Name="RepeatRedactionButton" ToolTip="Repeat last redaction style" Click="RepeatRedactionButton_Click">
+                        <Path Data="M 9 6 H 18 C 22 6, 25 9, 25 13 C 25 17, 22 20, 18 20 H 8 M 8 20 L 12 16 M 8 20 L 12 24"
+                              Stroke="#F4F7FB"
+                              StrokeThickness="3"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Fill="Transparent"
+                              Stretch="Uniform"
+                              Width="23"
+                              Height="23" />
+                    </Button>
+                    <Separator Margin="9,0" />
+                    <Button x:Name="ArrowButton" ToolTip="Arrow" Click="ArrowButton_Click">
+                        <Path Data="M 5 25 L 25 5 M 14 5 H 25 V 16"
+                              Stroke="#F4F7FB"
+                              StrokeThickness="3"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Stretch="Uniform"
+                              Width="22"
+                              Height="22" />
+                    </Button>
+                    <Button x:Name="LineButton" ToolTip="Line" Click="LineButton_Click">
+                        <Path Data="M 4 22 L 24 6"
+                              Stroke="#F4F7FB"
+                              StrokeThickness="3"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              Stretch="Uniform"
+                              Width="22"
+                              Height="22" />
+                    </Button>
+                    <Button x:Name="RectangleButton" ToolTip="Rectangle" Click="RectangleButton_Click">
+                        <Rectangle Width="22"
+                                   Height="16"
+                                   Stroke="#F4F7FB"
+                                   StrokeThickness="2.5"
+                                   Fill="Transparent" />
+                    </Button>
+                    <Button x:Name="PenButton" ToolTip="Pen" Click="PenButton_Click">
+                        <Path Data="M 7 24 L 10 16 L 21 5 C 22 4, 24 4, 25 5 C 26 6, 26 8, 25 9 L 14 20 L 7 24 Z M 10 16 L 14 20"
+                              Stroke="#F4F7FB"
+                              StrokeThickness="2.5"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Fill="Transparent"
+                              Stretch="Uniform"
+                              Width="23"
+                              Height="23" />
+                    </Button>
+                    <Button x:Name="TextButton" ToolTip="Text" Click="TextButton_Click">
+                        <Path Data="M 6 6 H 24 M 15 6 V 25 M 10 25 H 20"
+                              Stroke="#F4F7FB"
+                              StrokeThickness="3"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              Stretch="Uniform"
+                              Width="22"
+                              Height="22" />
+                    </Button>
+                    <Separator Margin="9,0" />
+                    <Button ToolTip="Undo" Click="UndoButton_Click">
+                        <Path Data="M 11 9 H 6 V 4 M 7 9 C 10 5, 18 5, 21 10 C 24 16, 19 23, 11 21"
+                              Stroke="#F4F7FB"
+                              StrokeThickness="3"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Fill="Transparent"
+                              Stretch="Uniform"
+                              Width="23"
+                              Height="23" />
+                    </Button>
+                    <Separator Margin="9,0" />
+                    <Button ToolTip="Open in separate window" Click="DetachButton_Click">
+                        <Grid Width="23" Height="23">
+                            <Rectangle Width="15" Height="15" Stroke="#F4F7FB" StrokeThickness="2.2" Fill="Transparent" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                            <Path Data="M 11 5 H 22 V 16 M 13 14 L 22 5"
+                                  Stroke="#F4F7FB"
+                                  StrokeThickness="2.4"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round" />
+                        </Grid>
+                    </Button>
+                    <Button ToolTip="Copy to clipboard" Click="CopyButton_Click">
+                        <Grid Width="23" Height="23">
+                            <Rectangle Width="14" Height="14" Stroke="#F4F7FB" StrokeThickness="2.3" Fill="Transparent" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,2,0,0" />
+                            <Rectangle Width="14" Height="14" Stroke="#F4F7FB" StrokeThickness="2.3" Fill="Transparent" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                        </Grid>
+                    </Button>
+                    <Button ToolTip="Save PNG" Click="SaveButton_Click">
+                        <Path Data="M 7 5 H 21 L 25 9 V 25 H 5 V 5 Z M 9 5 V 12 H 20 V 5 M 9 25 V 17 H 21 V 25"
+                              Stroke="#F4F7FB"
+                              StrokeThickness="2.4"
+                              StrokeLineJoin="Round"
+                              Fill="Transparent"
+                              Stretch="Uniform"
+                              Width="23"
+                              Height="23" />
+                    </Button>
+                    <Button ToolTip="Cancel" Click="CancelButton_Click">
+                        <Path Data="M 7 7 L 23 23 M 23 7 L 7 23"
+                              Stroke="#F4F7FB"
+                              StrokeThickness="3"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              Stretch="Uniform"
+                              Width="22"
+                              Height="22" />
+                    </Button>
                 </StackPanel>
             </Border>
-        </Grid>
+        </Canvas>
     </Grid>
 </Window>
