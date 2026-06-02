@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Thinksnap.App.Models;
+using Thinksnap.App.Services;
 using Thinksnap.Core.Hotkeys;
 
 namespace Thinksnap.App;
@@ -23,17 +24,20 @@ public partial class SettingsWindow : Window
         this.settings = settings;
         this.applySettings = applySettings;
         this.openUpdatePage = openUpdatePage;
+        this.settings.Language = LocalizationService.NormalizeLanguage(settings.Language);
         InitializeComponent();
         LoadSettingsIntoControls();
+        ApplyLocalization();
         SetActiveCategoryButton(GeneralCategoryButton);
         isLoading = false;
     }
 
     private void LoadSettingsIntoControls()
     {
+        SelectComboItemByTag(LanguageBox, settings.Language);
         SelectThemePreset(settings.ThemePreset);
-        SelectComboItem(DefaultRedactionBox, settings.DefaultRedactionStyle);
-        SelectComboItem(TextAlignmentBox, settings.DefaultTextAlignment);
+        SelectComboItemByTag(DefaultRedactionBox, settings.DefaultRedactionStyle);
+        SelectComboItemByTag(TextAlignmentBox, settings.DefaultTextAlignment);
         FloatingCaptureButtonCheckBox.IsChecked = settings.ShowFloatingCaptureButton;
         MinimizeToTrayCheckBox.IsChecked = settings.MinimizeToTrayOnClose;
         SelectionInstructionsCheckBox.IsChecked = settings.ShowSelectionInstructions;
@@ -50,6 +54,74 @@ public partial class SettingsWindow : Window
         FileNamePatternBox.Text = settings.DefaultFileNamePattern;
         UpdateUrlBox.Text = settings.UpdateUrl;
         UpdateHotkeyDisplay();
+        UpdateRangeLabels();
+    }
+
+    private void ApplyLocalization()
+    {
+        Title = T("Settings.WindowTitle");
+        SettingsTitleText.Text = T("Settings.Title");
+        StatusText.Text = string.IsNullOrWhiteSpace(StatusText.Text) || StatusText.Text == "Changes are saved automatically."
+            ? T("Settings.AutoSaved")
+            : StatusText.Text;
+
+        GeneralCategoryButton.Content = T("Settings.CategoryGeneral");
+        ShortcutsCategoryButton.Content = T("Settings.CategoryShortcuts");
+        CaptureCategoryButton.Content = T("Settings.CategoryCapture");
+        InterfaceCategoryButton.Content = T("Settings.CategoryInterface");
+        EditorCategoryButton.Content = T("Settings.CategoryEditor");
+        SaveCategoryButton.Content = T("Settings.CategorySave");
+        UpdatesCategoryButton.Content = T("Settings.CategoryUpdates");
+        ResetAllButton.Content = T("Settings.ResetAll");
+
+        GeneralTitleText.Text = T("Settings.General");
+        GeneralDescriptionText.Text = T("Settings.GeneralDescription");
+        FloatingCaptureButtonCheckBox.Content = T("Settings.ShowFloatingButton");
+        MinimizeToTrayCheckBox.Content = T("Settings.MinimizeToTray");
+        ResetCaptureButtonPositionButton.Content = T("Settings.ResetCapturePosition");
+
+        ShortcutsTitleText.Text = T("Settings.Shortcuts");
+        ShortcutsDescriptionText.Text = T("Settings.ShortcutsDescription");
+        HotkeyRecordButton.Content = isRecordingHotkey ? T("Settings.Recording") : T("Settings.Record");
+        HotkeyResetButton.Content = T("Action.Reset");
+
+        CaptureTitleText.Text = T("Settings.Capture");
+        CaptureDescriptionText.Text = T("Settings.CaptureDescription");
+        SelectionInstructionsCheckBox.Content = T("Settings.SelectionHint");
+
+        InterfaceTitleText.Text = T("Settings.Interface");
+        InterfaceDescriptionText.Text = T("Settings.InterfaceDescription");
+        LanguageLabelText.Text = T("Settings.Language");
+        ThemePresetLabelText.Text = T("Settings.ThemePreset");
+        AccentLabelText.Text = T("Settings.Accent");
+
+        EditorTitleText.Text = T("Settings.Editor");
+        EditorDescriptionText.Text = T("Settings.EditorDescription");
+        DefaultRedactionLabelText.Text = T("Settings.DefaultRedaction");
+        SetComboItemContent(DefaultRedactionBox, "Pixelate", T("Settings.RedactionPixelate"));
+        SetComboItemContent(DefaultRedactionBox, "Blackout", T("Settings.RedactionBlackout"));
+        SetComboItemContent(DefaultRedactionBox, "Blur", T("Settings.RedactionBlur"));
+        TextMoveHandlesCheckBox.Content = T("Settings.ShowTextMoveHandles");
+        TextBoldCheckBox.Content = T("Settings.TextBold");
+        TextAlignmentLabelText.Text = T("Settings.DefaultTextAlignment");
+        SetComboItemContent(TextAlignmentBox, "Left", T("Settings.TextAlignmentLeft"));
+        SetComboItemContent(TextAlignmentBox, "Center", T("Settings.TextAlignmentCenter"));
+        SetComboItemContent(TextAlignmentBox, "Right", T("Settings.TextAlignmentRight"));
+        TextColorLabelText.Text = T("Settings.TextColor");
+        TextBackgroundCheckBox.Content = T("Settings.TextBackground");
+        TextBackgroundColorLabelText.Text = T("Settings.TextBackgroundColor");
+
+        SaveTitleText.Text = T("Settings.Save");
+        SaveDescriptionText.Text = T("Settings.SaveDescription");
+        FileNamePatternLabelText.Text = T("Settings.FileNamePattern");
+        CopyAfterSaveCheckBox.Content = T("Settings.CopyAfterSave");
+
+        UpdatesTitleText.Text = T("Settings.CategoryUpdates");
+        UpdatesDescriptionText.Text = T("Settings.UpdateDescription");
+        OpenUpdatesButton.Content = T("Action.Updates");
+        UpdateUrlLabelText.Text = T("Settings.UpdateUrl");
+        CloseButton.Content = T("Action.Close");
+
         UpdateRangeLabels();
     }
 
@@ -119,6 +191,18 @@ public partial class SettingsWindow : Window
         ApplyCurrentSettings();
     }
 
+    private void LanguageBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (isLoading || LanguageBox.SelectedItem is not ComboBoxItem item || item.Tag is not string language)
+        {
+            return;
+        }
+
+        settings.Language = LocalizationService.NormalizeLanguage(language);
+        ApplyLocalization();
+        ApplyCurrentSettings();
+    }
+
     private void AccentButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.Button button || button.Tag is not string accent)
@@ -164,8 +248,8 @@ public partial class SettingsWindow : Window
     private void HotkeyRecordButton_Click(object sender, RoutedEventArgs e)
     {
         isRecordingHotkey = true;
-        HotkeyRecordButton.Content = "Press keys...";
-        StatusText.Text = "Press a key combination for capture.";
+        HotkeyRecordButton.Content = T("Settings.Recording");
+        StatusText.Text = T("Settings.HotkeyPrompt");
         HotkeyRecordButton.Focus();
         Keyboard.Focus(HotkeyRecordButton);
     }
@@ -192,7 +276,7 @@ public partial class SettingsWindow : Window
         var keyToken = ToHotkeyToken(key);
         if (keyToken is null)
         {
-            StatusText.Text = "This key is not supported for global shortcuts.";
+            StatusText.Text = T("Settings.UnsupportedKey");
             return;
         }
 
@@ -207,7 +291,7 @@ public partial class SettingsWindow : Window
         }
 
         isRecordingHotkey = false;
-        HotkeyRecordButton.Content = "Record";
+        HotkeyRecordButton.Content = T("Settings.Record");
     }
 
     private void HotkeyResetButton_Click(object sender, RoutedEventArgs e)
@@ -284,7 +368,7 @@ public partial class SettingsWindow : Window
 
     private void DefaultRedactionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (isLoading || DefaultRedactionBox.SelectedItem is not ComboBoxItem item || item.Content is not string value)
+        if (isLoading || DefaultRedactionBox.SelectedItem is not ComboBoxItem item || item.Tag is not string value)
         {
             return;
         }
@@ -341,7 +425,7 @@ public partial class SettingsWindow : Window
 
     private void TextAlignmentBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (isLoading || TextAlignmentBox.SelectedItem is not ComboBoxItem item || item.Content is not string value)
+        if (isLoading || TextAlignmentBox.SelectedItem is not ComboBoxItem item || item.Tag is not string value)
         {
             return;
         }
@@ -424,7 +508,7 @@ public partial class SettingsWindow : Window
         var error = applySettings(settings.Clone());
         if (error is null)
         {
-            StatusText.Text = "Changes saved.";
+            StatusText.Text = T("Settings.ChangesSaved");
             UpdateHotkeyDisplay();
         }
         else
@@ -443,6 +527,7 @@ public partial class SettingsWindow : Window
         settings.OverlayDimOpacity = Math.Clamp(settings.OverlayDimOpacity, 0.2, 0.85);
         settings.DefaultStrokeThickness = Math.Clamp(settings.DefaultStrokeThickness, 1, 12);
         settings.DefaultTextFontSize = Math.Clamp(settings.DefaultTextFontSize, 10, 72);
+        settings.Language = LocalizationService.NormalizeLanguage(settings.Language);
     }
 
     private void UpdateHotkeyDisplay()
@@ -454,12 +539,12 @@ public partial class SettingsWindow : Window
 
     private void UpdateRangeLabels()
     {
-        CaptureDelayValueText.Text = $"Capture delay: {Math.Round(CaptureDelaySlider.Value)} ms";
-        OverlayDimValueText.Text = $"Overlay dim: {Math.Round(OverlayDimSlider.Value)}%";
-        CaptureButtonSizeValueText.Text = $"Floating capture button: {Math.Round(CaptureButtonSizeSlider.Value)} px";
-        ToolbarButtonSizeValueText.Text = $"Overlay toolbar buttons: {Math.Round(ToolbarButtonSizeSlider.Value)} px";
-        StrokeThicknessValueText.Text = $"Drawing thickness: {Math.Round(StrokeThicknessSlider.Value)} px";
-        TextFontSizeValueText.Text = $"Text size: {Math.Round(TextFontSizeSlider.Value)} px";
+        CaptureDelayValueText.Text = L("Settings.CaptureDelay", Math.Round(CaptureDelaySlider.Value));
+        OverlayDimValueText.Text = L("Settings.OverlayDim", Math.Round(OverlayDimSlider.Value));
+        CaptureButtonSizeValueText.Text = L("Settings.CaptureButtonSize", Math.Round(CaptureButtonSizeSlider.Value));
+        ToolbarButtonSizeValueText.Text = L("Settings.ToolbarButtonSize", Math.Round(ToolbarButtonSizeSlider.Value));
+        StrokeThicknessValueText.Text = L("Settings.StrokeThickness", Math.Round(StrokeThicknessSlider.Value));
+        TextFontSizeValueText.Text = L("Settings.TextSize", Math.Round(TextFontSizeSlider.Value));
     }
 
     private void SelectThemePreset(string preset)
@@ -480,6 +565,36 @@ public partial class SettingsWindow : Window
 
         comboBox.SelectedIndex = 0;
     }
+
+    private static void SelectComboItemByTag(System.Windows.Controls.ComboBox comboBox, string value)
+    {
+        foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
+        {
+            if (string.Equals(item.Tag?.ToString(), value, StringComparison.OrdinalIgnoreCase))
+            {
+                comboBox.SelectedItem = item;
+                return;
+            }
+        }
+
+        SelectComboItem(comboBox, value);
+    }
+
+    private static void SetComboItemContent(System.Windows.Controls.ComboBox comboBox, string tag, string content)
+    {
+        foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
+        {
+            if (string.Equals(item.Tag?.ToString(), tag, StringComparison.OrdinalIgnoreCase))
+            {
+                item.Content = content;
+                return;
+            }
+        }
+    }
+
+    private string T(string key) => LocalizationService.Text(settings, key);
+
+    private string L(string key, params object[] values) => LocalizationService.Format(settings, key, values);
 
     private static void SetSliderValue(Slider slider, double value, double minimum, double maximum)
     {

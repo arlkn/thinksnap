@@ -1,18 +1,19 @@
 using System.Diagnostics;
 using System.Windows;
+using Thinksnap.App.Models;
 using Thinksnap.Core.Updates;
 
 namespace Thinksnap.App.Services;
 
 public sealed class UpdateService
 {
-    public bool OpenUpdatePage(string? updateUrl, Window? owner = null)
+    public bool OpenUpdatePage(string? updateUrl, Window? owner = null, AppSettings? settings = null)
     {
         if (UpdateTarget.TryCreateUri(updateUrl, out var uri) is false)
         {
             System.Windows.MessageBox.Show(
                 owner,
-                "Update URL is not configured yet.",
+                settings is null ? "Update URL is not configured yet." : LocalizationService.Text(settings, "Update.NotConfigured"),
                 "Thinksnap",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -32,7 +33,7 @@ public sealed class UpdateService
         {
             System.Windows.MessageBox.Show(
                 owner,
-                $"Could not open update page: {ex.Message}",
+                settings is null ? $"Could not open update page: {ex.Message}" : LocalizationService.Format(settings, "Update.OpenFailed", ex.Message),
                 "Thinksnap",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);

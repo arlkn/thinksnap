@@ -41,7 +41,8 @@
                            Foreground="{DynamicResource PrimaryTextBrush}"
                            FontSize="34"
                            FontWeight="SemiBold" />
-                <TextBlock Text="Redaction-first screenshots."
+                <TextBlock x:Name="LauncherSubtitleText"
+                           Text="Redaction-first screenshots."
                            Margin="0,8,0,0"
                            Foreground="{DynamicResource SecondaryTextBrush}"
                            FontSize="15" />

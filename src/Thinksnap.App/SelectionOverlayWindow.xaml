@@ -92,12 +92,15 @@
                 CornerRadius="8"
                 IsHitTestVisible="False">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="1. Drag to select"
+                <TextBlock x:Name="InstructionStepOneText"
+                           Text="1. Drag to select"
                            Foreground="#F4F7FB"
                            FontWeight="SemiBold" />
-                <TextBlock Text="   2. Edit immediately   3. Copy or Save"
+                <TextBlock x:Name="InstructionStepTwoText"
+                           Text="   2. Edit immediately   3. Copy or Save"
                            Foreground="#B9C3CF" />
-                <TextBlock Text="   Esc cancels"
+                <TextBlock x:Name="InstructionStepThreeText"
+                           Text="   Esc cancels"
                            Foreground="#8F9AAA" />
             </StackPanel>
         </Border>
@@ -275,7 +278,7 @@
                               Height="22" />
                     </Button>
                     <Separator Margin="9,0" />
-                    <Button ToolTip="Undo" Click="UndoButton_Click">
+                    <Button x:Name="UndoButton" ToolTip="Undo" Click="UndoButton_Click">
                         <Path Data="M 11 9 H 6 V 4 M 7 9 C 10 5, 18 5, 21 10 C 24 16, 19 23, 11 21"
                               Stroke="#F4F7FB"
                               StrokeThickness="3"
@@ -288,7 +291,7 @@
                               Height="23" />
                     </Button>
                     <Separator Margin="9,0" />
-                    <Button ToolTip="Open in separate window" Click="DetachButton_Click">
+                    <Button x:Name="DetachButton" ToolTip="Open in separate window" Click="DetachButton_Click">
                         <Grid Width="23" Height="23">
                             <Rectangle Width="15" Height="15" Stroke="#F4F7FB" StrokeThickness="2.2" Fill="Transparent" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
                             <Path Data="M 11 5 H 22 V 16 M 13 14 L 22 5"
@@ -299,13 +302,13 @@
                                   StrokeLineJoin="Round" />
                         </Grid>
                     </Button>
-                    <Button ToolTip="Copy to clipboard" Click="CopyButton_Click">
+                    <Button x:Name="CopyButton" ToolTip="Copy to clipboard" Click="CopyButton_Click">
                         <Grid Width="23" Height="23">
                             <Rectangle Width="14" Height="14" Stroke="#F4F7FB" StrokeThickness="2.3" Fill="Transparent" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,2,0,0" />
                             <Rectangle Width="14" Height="14" Stroke="#F4F7FB" StrokeThickness="2.3" Fill="Transparent" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
                         </Grid>
                     </Button>
-                    <Button ToolTip="Save PNG" Click="SaveButton_Click">
+                    <Button x:Name="SaveButton" ToolTip="Save PNG" Click="SaveButton_Click">
                         <Path Data="M 7 5 H 21 L 25 9 V 25 H 5 V 5 Z M 9 5 V 12 H 20 V 5 M 9 25 V 17 H 21 V 25"
                               Stroke="#F4F7FB"
                               StrokeThickness="2.4"
@@ -315,7 +318,7 @@
                               Width="23"
                               Height="23" />
                     </Button>
-                    <Button ToolTip="Cancel" Click="CancelButton_Click">
+                    <Button x:Name="CancelButton" ToolTip="Cancel" Click="CancelButton_Click">
                         <Path Data="M 7 7 L 23 23 M 23 7 L 7 23"
                               Stroke="#F4F7FB"
                               StrokeThickness="3"

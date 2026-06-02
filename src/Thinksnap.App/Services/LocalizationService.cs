@@ -1,0 +1,265 @@
+using System.Globalization;
+using Thinksnap.App.Models;
+
+namespace Thinksnap.App.Services;
+
+public static class LocalizationService
+{
+    public const string DefaultLanguage = "en";
+
+    public static readonly LanguageOption[] Languages =
+    [
+        new("en", "English"),
+        new("tr", "Türkçe")
+    ];
+
+    private static readonly Dictionary<string, Dictionary<string, string>> Strings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["en"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Action.Cancel"] = "Cancel",
+            ["Action.Close"] = "Close",
+            ["Action.Copy"] = "Copy",
+            ["Action.CopyToClipboard"] = "Copy to clipboard",
+            ["Action.Reset"] = "Reset",
+            ["Action.Save"] = "Save",
+            ["Action.SavePng"] = "Save PNG",
+            ["Action.Settings"] = "Settings...",
+            ["Action.TakeScreenshot"] = "Take Screenshot",
+            ["Action.Undo"] = "Undo",
+            ["Action.Updates"] = "Get updates...",
+            ["Capture.Canceled"] = "Capture canceled.",
+            ["Capture.Copied"] = "Capture copied to clipboard.",
+            ["Capture.Failed"] = "Capture failed: {0}",
+            ["Capture.SelectRegion"] = "Select a screen region.",
+            ["Capture.Saved"] = "Capture saved as PNG.",
+            ["Capture.SavedAndCopied"] = "Capture saved as PNG and copied to clipboard.",
+            ["Detached.Title"] = "Thinksnap Editor",
+            ["Editor.Canceled"] = "Edit canceled.",
+            ["Editor.EditingRegion"] = "Editing {0}x{1} region.",
+            ["Editor.EditingRegionDetached"] = "Editing {0}x{1} region in separate window.",
+            ["Error.CopyFailed"] = "Copy failed: {0}",
+            ["Error.SaveFailed"] = "Save failed: {0}",
+            ["Floating.CaptureTooltip"] = "Capture",
+            ["Floating.Hide"] = "Hide capture button",
+            ["Instruction.Step1"] = "1. Drag to select",
+            ["Instruction.Step2"] = "   2. Edit immediately   3. Copy or Save",
+            ["Instruction.Step3"] = "   Esc cancels",
+            ["Main.HotkeyUnavailable"] = "{0} hotkey is unavailable: {1}",
+            ["Main.LauncherStatus"] = "Use the floating capture icon, tray, or PrintScreen.",
+            ["Main.LauncherSubtitle"] = "Redaction-first screenshots.",
+            ["Main.MinimizedToTray"] = "Thinksnap is still running in the system tray.",
+            ["Settings.Accent"] = "Accent",
+            ["Settings.AutoSaved"] = "Changes are saved automatically.",
+            ["Settings.Capture"] = "Capture",
+            ["Settings.CaptureButtonSize"] = "Floating capture button: {0} px",
+            ["Settings.CaptureDelay"] = "Capture delay: {0} ms",
+            ["Settings.CaptureDescription"] = "Frozen overlay and selection behavior.",
+            ["Settings.CategoryCapture"] = "Capture",
+            ["Settings.CategoryEditor"] = "Editor",
+            ["Settings.CategoryGeneral"] = "General",
+            ["Settings.CategoryInterface"] = "Interface",
+            ["Settings.CategorySave"] = "Save / Clipboard",
+            ["Settings.CategoryShortcuts"] = "Shortcuts",
+            ["Settings.CategoryUpdates"] = "Updates",
+            ["Settings.ChangesSaved"] = "Changes saved.",
+            ["Settings.CopyAfterSave"] = "Copy image after saving",
+            ["Settings.DefaultRedaction"] = "Default redaction mode",
+            ["Settings.DefaultTextAlignment"] = "Default text alignment",
+            ["Settings.Editor"] = "Editor",
+            ["Settings.EditorDescription"] = "Defaults used when a new overlay editor opens.",
+            ["Settings.FileNamePattern"] = "Filename pattern",
+            ["Settings.General"] = "General",
+            ["Settings.GeneralDescription"] = "Startup and shell behavior.",
+            ["Settings.HotkeyPrompt"] = "Press a key combination for capture.",
+            ["Settings.Interface"] = "Interface",
+            ["Settings.InterfaceDescription"] = "Language, theme, accent, and control sizing.",
+            ["Settings.Language"] = "Language",
+            ["Settings.MinimizeToTray"] = "Keep running in tray when the taskbar window is closed",
+            ["Settings.OverlayDim"] = "Overlay dim: {0}%",
+            ["Settings.Record"] = "Record",
+            ["Settings.Recording"] = "Press keys...",
+            ["Settings.RedactionBlackout"] = "Blackout",
+            ["Settings.RedactionBlur"] = "Blur",
+            ["Settings.RedactionPixelate"] = "Pixelate",
+            ["Settings.ResetAll"] = "Reset all",
+            ["Settings.ResetCapturePosition"] = "Reset capture button position",
+            ["Settings.Save"] = "Save / Clipboard",
+            ["Settings.SaveDescription"] = "Output defaults.",
+            ["Settings.SelectionHint"] = "Show selection instruction hint",
+            ["Settings.Shortcuts"] = "Shortcuts",
+            ["Settings.ShortcutsDescription"] = "Global capture shortcut.",
+            ["Settings.ShowFloatingButton"] = "Show floating capture button",
+            ["Settings.ShowTextMoveHandles"] = "Show text move handles",
+            ["Settings.StrokeThickness"] = "Drawing thickness: {0} px",
+            ["Settings.TextAlignmentCenter"] = "Center",
+            ["Settings.TextAlignmentLeft"] = "Left",
+            ["Settings.TextAlignmentRight"] = "Right",
+            ["Settings.TextBackground"] = "Create new text with background",
+            ["Settings.TextBackgroundColor"] = "Text background color",
+            ["Settings.TextBold"] = "Create new text as bold",
+            ["Settings.TextColor"] = "Text color",
+            ["Settings.TextSize"] = "Text size: {0} px",
+            ["Settings.ThemePreset"] = "Theme preset",
+            ["Settings.Title"] = "Settings",
+            ["Settings.ToolbarButtonSize"] = "Overlay toolbar buttons: {0} px",
+            ["Settings.UnsupportedHotkey"] = "Unsupported capture hotkey.",
+            ["Settings.UnsupportedKey"] = "This key is not supported for global shortcuts.",
+            ["Settings.UpdateDescription"] = "Open the latest Thinksnap release page.",
+            ["Settings.UpdateUrl"] = "Update URL",
+            ["Settings.WindowTitle"] = "Thinksnap Settings",
+            ["Tool.Arrow"] = "Arrow",
+            ["Tool.Blackout"] = "Blackout",
+            ["Tool.Blur"] = "Soft blur redaction",
+            ["Tool.Detach"] = "Open in separate window",
+            ["Tool.Line"] = "Line",
+            ["Tool.Pen"] = "Pen",
+            ["Tool.Pixelate"] = "Pixelate",
+            ["Tool.Rectangle"] = "Rectangle",
+            ["Tool.RepeatRedaction"] = "Repeat last redaction style",
+            ["Tool.Text"] = "Text",
+            ["Tray.Exit"] = "Exit",
+            ["Tray.ShowCaptureButton"] = "Show Capture Button",
+            ["Update.NotConfigured"] = "Update URL is not configured yet.",
+            ["Update.OpenFailed"] = "Could not open update page: {0}"
+        },
+        ["tr"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Action.Cancel"] = "İptal",
+            ["Action.Close"] = "Kapat",
+            ["Action.Copy"] = "Kopyala",
+            ["Action.CopyToClipboard"] = "Panoya kopyala",
+            ["Action.Reset"] = "Sıfırla",
+            ["Action.Save"] = "Kaydet",
+            ["Action.SavePng"] = "PNG kaydet",
+            ["Action.Settings"] = "Ayarlar...",
+            ["Action.TakeScreenshot"] = "Ekran görüntüsü al",
+            ["Action.Undo"] = "Geri al",
+            ["Action.Updates"] = "Güncelleştirmeleri al...",
+            ["Capture.Canceled"] = "Yakalama iptal edildi.",
+            ["Capture.Copied"] = "Ekran görüntüsü panoya kopyalandı.",
+            ["Capture.Failed"] = "Yakalama başarısız: {0}",
+            ["Capture.SelectRegion"] = "Bir ekran bölgesi seç.",
+            ["Capture.Saved"] = "Ekran görüntüsü PNG olarak kaydedildi.",
+            ["Capture.SavedAndCopied"] = "Ekran görüntüsü PNG olarak kaydedildi ve panoya kopyalandı.",
+            ["Detached.Title"] = "Thinksnap Düzenleyici",
+            ["Editor.Canceled"] = "Düzenleme iptal edildi.",
+            ["Editor.EditingRegion"] = "{0}x{1} bölgesi düzenleniyor.",
+            ["Editor.EditingRegionDetached"] = "{0}x{1} bölgesi ayrı pencerede düzenleniyor.",
+            ["Error.CopyFailed"] = "Kopyalama başarısız: {0}",
+            ["Error.SaveFailed"] = "Kaydetme başarısız: {0}",
+            ["Floating.CaptureTooltip"] = "Yakala",
+            ["Floating.Hide"] = "Capture butonunu gizle",
+            ["Instruction.Step1"] = "1. Seçmek için sürükle",
+            ["Instruction.Step2"] = "   2. Hemen düzenle   3. Kopyala veya kaydet",
+            ["Instruction.Step3"] = "   Esc iptal eder",
+            ["Main.HotkeyUnavailable"] = "{0} kısayolu kullanılamıyor: {1}",
+            ["Main.LauncherStatus"] = "Floating capture ikonu, tepsi veya PrintScreen kullan.",
+            ["Main.LauncherSubtitle"] = "Sansür öncelikli ekran görüntüleri.",
+            ["Main.MinimizedToTray"] = "Thinksnap sistem tepsisinde çalışmaya devam ediyor.",
+            ["Settings.Accent"] = "Vurgu rengi",
+            ["Settings.AutoSaved"] = "Değişiklikler otomatik kaydedilir.",
+            ["Settings.Capture"] = "Yakalama",
+            ["Settings.CaptureButtonSize"] = "Floating capture butonu: {0} px",
+            ["Settings.CaptureDelay"] = "Yakalama gecikmesi: {0} ms",
+            ["Settings.CaptureDescription"] = "Donmuş overlay ve seçim davranışı.",
+            ["Settings.CategoryCapture"] = "Yakalama",
+            ["Settings.CategoryEditor"] = "Düzenleyici",
+            ["Settings.CategoryGeneral"] = "Genel",
+            ["Settings.CategoryInterface"] = "Arayüz",
+            ["Settings.CategorySave"] = "Kaydet / Pano",
+            ["Settings.CategoryShortcuts"] = "Kısayollar",
+            ["Settings.CategoryUpdates"] = "Güncellemeler",
+            ["Settings.ChangesSaved"] = "Değişiklikler kaydedildi.",
+            ["Settings.CopyAfterSave"] = "Kaydettikten sonra panoya kopyala",
+            ["Settings.DefaultRedaction"] = "Varsayılan sansür modu",
+            ["Settings.DefaultTextAlignment"] = "Varsayılan metin hizalama",
+            ["Settings.Editor"] = "Düzenleyici",
+            ["Settings.EditorDescription"] = "Yeni overlay düzenleyicide kullanılacak varsayılanlar.",
+            ["Settings.FileNamePattern"] = "Dosya adı kalıbı",
+            ["Settings.General"] = "Genel",
+            ["Settings.GeneralDescription"] = "Başlangıç ve uygulama kabuğu davranışı.",
+            ["Settings.HotkeyPrompt"] = "Yakalama için bir tuş kombinasyonuna bas.",
+            ["Settings.Interface"] = "Arayüz",
+            ["Settings.InterfaceDescription"] = "Dil, tema, vurgu rengi ve kontrol boyutları.",
+            ["Settings.Language"] = "Dil",
+            ["Settings.MinimizeToTray"] = "Görev çubuğu penceresi kapanınca tepside çalışmaya devam et",
+            ["Settings.OverlayDim"] = "Overlay karartma: %{0}",
+            ["Settings.Record"] = "Kaydet",
+            ["Settings.Recording"] = "Tuşlara bas...",
+            ["Settings.RedactionBlackout"] = "Karart",
+            ["Settings.RedactionBlur"] = "Bulanıklaştır",
+            ["Settings.RedactionPixelate"] = "Pikselleştir",
+            ["Settings.ResetAll"] = "Tümünü sıfırla",
+            ["Settings.ResetCapturePosition"] = "Capture butonu konumunu sıfırla",
+            ["Settings.Save"] = "Kaydet / Pano",
+            ["Settings.SaveDescription"] = "Çıktı varsayılanları.",
+            ["Settings.SelectionHint"] = "Seçim yönergesi ipucunu göster",
+            ["Settings.Shortcuts"] = "Kısayollar",
+            ["Settings.ShortcutsDescription"] = "Genel yakalama kısayolu.",
+            ["Settings.ShowFloatingButton"] = "Floating capture butonunu göster",
+            ["Settings.ShowTextMoveHandles"] = "Metin taşıma tutacaklarını göster",
+            ["Settings.StrokeThickness"] = "Çizim kalınlığı: {0} px",
+            ["Settings.TextAlignmentCenter"] = "Orta",
+            ["Settings.TextAlignmentLeft"] = "Sol",
+            ["Settings.TextAlignmentRight"] = "Sağ",
+            ["Settings.TextBackground"] = "Yeni metni arka planla oluştur",
+            ["Settings.TextBackgroundColor"] = "Metin arka plan rengi",
+            ["Settings.TextBold"] = "Yeni metni kalın oluştur",
+            ["Settings.TextColor"] = "Metin rengi",
+            ["Settings.TextSize"] = "Metin boyutu: {0} px",
+            ["Settings.ThemePreset"] = "Tema ön ayarı",
+            ["Settings.Title"] = "Ayarlar",
+            ["Settings.ToolbarButtonSize"] = "Overlay araç butonları: {0} px",
+            ["Settings.UnsupportedHotkey"] = "Desteklenmeyen yakalama kısayolu.",
+            ["Settings.UnsupportedKey"] = "Bu tuş genel kısayollar için desteklenmiyor.",
+            ["Settings.UpdateDescription"] = "En güncel Thinksnap release sayfasını aç.",
+            ["Settings.UpdateUrl"] = "Güncelleme URL'si",
+            ["Settings.WindowTitle"] = "Thinksnap Ayarları",
+            ["Tool.Arrow"] = "Ok",
+            ["Tool.Blackout"] = "Karart",
+            ["Tool.Blur"] = "Yumuşak bulanık sansür",
+            ["Tool.Detach"] = "Ayrı pencerede aç",
+            ["Tool.Line"] = "Çizgi",
+            ["Tool.Pen"] = "Kalem",
+            ["Tool.Pixelate"] = "Pikselleştir",
+            ["Tool.Rectangle"] = "Dikdörtgen",
+            ["Tool.RepeatRedaction"] = "Son sansür stilini tekrarla",
+            ["Tool.Text"] = "Metin",
+            ["Tray.Exit"] = "Çıkış",
+            ["Tray.ShowCaptureButton"] = "Capture butonunu göster",
+            ["Update.NotConfigured"] = "Güncelleme URL'si henüz ayarlanmadı.",
+            ["Update.OpenFailed"] = "Güncelleme sayfası açılamadı: {0}"
+        }
+    };
+
+    public static string NormalizeLanguage(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            return DefaultLanguage;
+        }
+
+        return Strings.ContainsKey(language) ? language : DefaultLanguage;
+    }
+
+    public static string Text(AppSettings settings, string key) => Text(settings.Language, key);
+
+    public static string Text(string? language, string key)
+    {
+        var normalized = NormalizeLanguage(language);
+        if (Strings[normalized].TryGetValue(key, out var value))
+        {
+            return value;
+        }
+
+        return Strings[DefaultLanguage].TryGetValue(key, out var fallback) ? fallback : key;
+    }
+
+    public static string Format(AppSettings settings, string key, params object[] values)
+    {
+        return string.Format(CultureInfo.CurrentCulture, Text(settings, key), values);
+    }
+}
+
+public sealed record LanguageOption(string Code, string DisplayName);

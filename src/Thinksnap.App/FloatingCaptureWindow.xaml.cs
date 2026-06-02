@@ -24,8 +24,17 @@ public partial class FloatingCaptureWindow : Window
         this.settings = settings;
         this.settingsService = settingsService;
         InitializeComponent();
+        ApplyLocalization();
 
         Loaded += FloatingCaptureWindow_Loaded;
+    }
+
+    private void ApplyLocalization()
+    {
+        CaptureButton.ToolTip = LocalizationService.Text(settings, "Floating.CaptureTooltip");
+        TakeScreenshotMenuItem.Header = LocalizationService.Text(settings, "Action.TakeScreenshot");
+        OpenSettingsMenuItem.Header = LocalizationService.Text(settings, "Action.Settings");
+        HideCaptureButtonMenuItem.Header = LocalizationService.Text(settings, "Floating.Hide");
     }
 
     private void FloatingCaptureWindow_Loaded(object sender, RoutedEventArgs e)

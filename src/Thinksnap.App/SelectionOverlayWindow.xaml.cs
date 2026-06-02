@@ -56,12 +56,35 @@ public partial class SelectionOverlayWindow : Window
 
         ApplyEditorDefaults();
         ApplyOverlayDefaults();
+        ApplyLocalization();
         SetRedactionTool(CanvasHost.ActiveRedactionStyle, PixelateButton);
     }
 
     public Int32Rect? SelectedRegion { get; private set; }
 
-    public string ResultMessage { get; private set; } = "Capture canceled.";
+    public string ResultMessage { get; private set; } = string.Empty;
+
+    private void ApplyLocalization()
+    {
+        ResultMessage = T("Capture.Canceled");
+        InstructionStepOneText.Text = T("Instruction.Step1");
+        InstructionStepTwoText.Text = T("Instruction.Step2");
+        InstructionStepThreeText.Text = T("Instruction.Step3");
+        PixelateButton.ToolTip = T("Tool.Pixelate");
+        BlackoutButton.ToolTip = T("Tool.Blackout");
+        BlurButton.ToolTip = T("Tool.Blur");
+        RepeatRedactionButton.ToolTip = T("Tool.RepeatRedaction");
+        ArrowButton.ToolTip = T("Tool.Arrow");
+        LineButton.ToolTip = T("Tool.Line");
+        RectangleButton.ToolTip = T("Tool.Rectangle");
+        PenButton.ToolTip = T("Tool.Pen");
+        TextButton.ToolTip = T("Tool.Text");
+        UndoButton.ToolTip = T("Action.Undo");
+        DetachButton.ToolTip = T("Tool.Detach");
+        CopyButton.ToolTip = T("Action.CopyToClipboard");
+        SaveButton.ToolTip = T("Action.SavePng");
+        CancelButton.ToolTip = T("Action.Cancel");
+    }
 
     private void OverlayCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -107,7 +130,7 @@ public partial class SelectionOverlayWindow : Window
         if (selectedRegion.Width < MinimumSelectionSize || selectedRegion.Height < MinimumSelectionSize)
         {
             SelectedRegion = null;
-            ResultMessage = "Capture canceled.";
+            ResultMessage = T("Capture.Canceled");
             DialogResult = false;
             return;
         }
@@ -120,7 +143,7 @@ public partial class SelectionOverlayWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            ResultMessage = EditorLayer.Visibility == Visibility.Visible ? "Edit canceled." : "Capture canceled.";
+            ResultMessage = EditorLayer.Visibility == Visibility.Visible ? T("Editor.Canceled") : T("Capture.Canceled");
             DialogResult = false;
         }
     }
@@ -138,7 +161,7 @@ public partial class SelectionOverlayWindow : Window
         EditorLayer.Visibility = Visibility.Visible;
         EditorLayer.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(140)));
         Cursor = WpfCursors.Arrow;
-        ResultMessage = $"Editing {selectedRegion.Width}x{selectedRegion.Height} region.";
+        ResultMessage = L("Editor.EditingRegion", selectedRegion.Width, selectedRegion.Height);
     }
 
     private void EditorFrameAdjust_DragStarted(object sender, DragStartedEventArgs e)
@@ -306,7 +329,7 @@ public partial class SelectionOverlayWindow : Window
         }
 
         PositionEditorChrome();
-        ResultMessage = $"Editing {activeEditorRegion.Width}x{activeEditorRegion.Height} region.";
+        ResultMessage = L("Editor.EditingRegion", activeEditorRegion.Width, activeEditorRegion.Height);
     }
 
     private void LoadFullEditorImage()
@@ -318,6 +341,7 @@ public partial class SelectionOverlayWindow : Window
     private void ApplyEditorDefaults()
     {
         CanvasHost.StrokeColor = settings.DefaultTextColor;
+        CanvasHost.NewTextPlaceholder = T("Tool.Text");
         CanvasHost.TextFontSize = Math.Clamp(settings.DefaultTextFontSize, 10, 72);
         CanvasHost.StrokeThickness = Math.Clamp(settings.DefaultStrokeThickness, 1, 12);
         CanvasHost.IsTextBold = settings.DefaultTextBold;
@@ -412,12 +436,12 @@ public partial class SelectionOverlayWindow : Window
         try
         {
             exportService.CopyToClipboard(RenderSelectedOutput());
-            ResultMessage = "Capture copied to clipboard.";
+            ResultMessage = T("Capture.Copied");
             DialogResult = true;
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(this, $"Copy failed: {ex.Message}", "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Windows.MessageBox.Show(this, L("Error.CopyFailed", ex.Message), "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -434,20 +458,20 @@ public partial class SelectionOverlayWindow : Window
                 }
 
                 ResultMessage = settings.CopyAfterSave
-                    ? "Capture saved as PNG and copied to clipboard."
-                    : "Capture saved as PNG.";
+                    ? T("Capture.SavedAndCopied")
+                    : T("Capture.Saved");
                 DialogResult = true;
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(this, $"Save failed: {ex.Message}", "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Windows.MessageBox.Show(this, L("Error.SaveFailed", ex.Message), "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
-        ResultMessage = "Edit canceled.";
+        ResultMessage = T("Editor.Canceled");
         DialogResult = false;
     }
 
@@ -473,12 +497,12 @@ public partial class SelectionOverlayWindow : Window
 
     private void DetachButton_Click(object sender, RoutedEventArgs e)
     {
-        var detachedWindow = new DetachedEditorWindow(RenderSelectedOutput(), exportService)
+        var detachedWindow = new DetachedEditorWindow(RenderSelectedOutput(), exportService, settings)
         {
             Owner = Owner
         };
         detachedWindow.Show();
-        ResultMessage = $"Editing {activeEditorRegion.Width}x{activeEditorRegion.Height} region in separate window.";
+        ResultMessage = L("Editor.EditingRegionDetached", activeEditorRegion.Width, activeEditorRegion.Height);
         DialogResult = true;
     }
 
@@ -576,4 +600,8 @@ public partial class SelectionOverlayWindow : Window
             }
         }
     }
+
+    private string T(string key) => LocalizationService.Text(settings, key);
+
+    private string L(string key, params object[] values) => LocalizationService.Format(settings, key, values);
 }

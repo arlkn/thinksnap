@@ -35,7 +35,8 @@
             Background="Transparent"
             CornerRadius="27"
             Opacity="0.98">
-        <Button ToolTip="Capture"
+        <Button x:Name="CaptureButton"
+                ToolTip="Capture"
                 Style="{StaticResource IconOnlyButtonStyle}"
                 Cursor="SizeAll"
                 PreviewMouseLeftButtonDown="CaptureButton_PreviewMouseLeftButtonDown"
@@ -43,12 +44,15 @@
                 PreviewMouseLeftButtonUp="CaptureButton_PreviewMouseLeftButtonUp">
             <Button.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="Take Screenshot"
+                    <MenuItem x:Name="TakeScreenshotMenuItem"
+                              Header="Take Screenshot"
                               Click="TakeScreenshotMenuItem_Click" />
-                    <MenuItem Header="Settings..."
+                    <MenuItem x:Name="OpenSettingsMenuItem"
+                              Header="Settings..."
                               Click="OpenSettingsMenuItem_Click" />
                     <Separator />
-                    <MenuItem Header="Hide capture button"
+                    <MenuItem x:Name="HideCaptureButtonMenuItem"
+                              Header="Hide capture button"
                               Click="HideCaptureButtonMenuItem_Click" />
                 </ContextMenu>
             </Button.ContextMenu>

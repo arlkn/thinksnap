@@ -4,6 +4,8 @@ namespace Thinksnap.App.Models;
 
 public sealed class AppSettings
 {
+    public string Language { get; set; } = "en";
+
     public string ThemePreset { get; set; } = "Midnight";
 
     public string AccentColor { get; set; } = "#2F80ED";
@@ -56,6 +58,7 @@ public sealed class AppSettings
     {
         return new AppSettings
         {
+            Language = Language,
             ThemePreset = ThemePreset,
             AccentColor = AccentColor,
             CaptureHotkey = CaptureHotkey,

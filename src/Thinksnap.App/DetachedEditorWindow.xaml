@@ -64,9 +64,9 @@
                 <Button x:Name="PenButton" Content="Pen" ToolTip="Pen" Click="PenButton_Click" />
                 <Button x:Name="TextButton" Content="Text" ToolTip="Text" Click="TextButton_Click" />
                 <Separator Margin="8,0" />
-                <Button Content="Undo" ToolTip="Undo" Click="UndoButton_Click" />
-                <Button Content="Copy" ToolTip="Copy to clipboard" Click="CopyButton_Click" />
-                <Button Content="Save" ToolTip="Save PNG" Click="SaveButton_Click" />
+                <Button x:Name="UndoButton" Content="Undo" ToolTip="Undo" Click="UndoButton_Click" />
+                <Button x:Name="CopyButton" Content="Copy" ToolTip="Copy to clipboard" Click="CopyButton_Click" />
+                <Button x:Name="SaveButton" Content="Save" ToolTip="Save PNG" Click="SaveButton_Click" />
             </StackPanel>
         </Border>
     </Grid>

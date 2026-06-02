@@ -63,6 +63,8 @@ public sealed class AnnotationCanvas : Canvas
 
     public bool ShowTextMoveHandles { get; set; } = true;
 
+    public string NewTextPlaceholder { get; set; } = "Text";
+
     public IReadOnlyList<AnnotationOperation> Operations => operations.ToArray();
 
     public void SetImage(BitmapSource source)
@@ -323,7 +325,7 @@ public sealed class AnnotationCanvas : Canvas
 
         var textBox = new WpfTextBox
         {
-            Text = "Text",
+            Text = NewTextPlaceholder,
             Foreground = CreateStrokeBrush(),
             Background = CreateTextBackgroundBrush(),
             BorderBrush = CreateStrokeBrush(),

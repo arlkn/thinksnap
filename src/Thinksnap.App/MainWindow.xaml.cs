@@ -35,7 +35,9 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         appSettings = settingsService.Load();
+        appSettings.Language = LocalizationService.NormalizeLanguage(appSettings.Language);
         ThemeService.Apply(appSettings);
+        ApplyLocalization();
         Closing += MainWindow_Closing;
         Closed += MainWindow_Closed;
 
@@ -57,7 +59,7 @@ public partial class MainWindow : Window
         }
         catch (Win32Exception ex)
         {
-            StatusText.Text = $"{gesture.DisplayText} hotkey is unavailable: {ex.Message}";
+            StatusText.Text = L("Main.HotkeyUnavailable", gesture.DisplayText, ex.Message);
         }
     }
 
@@ -76,7 +78,7 @@ public partial class MainWindow : Window
 
         e.Cancel = true;
         Hide();
-        StatusText.Text = "Thinksnap is still running in the system tray.";
+        StatusText.Text = T("Main.MinimizedToTray");
     }
 
     private void MainWindow_Closed(object? sender, EventArgs e)
@@ -106,7 +108,7 @@ public partial class MainWindow : Window
 
         isCapturing = true;
         var shouldRestoreWindow = IsVisible;
-        StatusText.Text = "Select a screen region.";
+        StatusText.Text = T("Capture.SelectRegion");
 
         try
         {
@@ -126,7 +128,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Capture failed: {ex.Message}";
+            StatusText.Text = L("Capture.Failed", ex.Message);
         }
         finally
         {
@@ -148,25 +150,25 @@ public partial class MainWindow : Window
     {
         var menu = new FormsContextMenuStrip();
 
-        var takeScreenshot = new FormsToolStripMenuItem("Take Screenshot");
+        var takeScreenshot = new FormsToolStripMenuItem(T("Action.TakeScreenshot"));
         takeScreenshot.Click += (_, _) => Dispatcher.Invoke(StartCapture);
         menu.Items.Add(takeScreenshot);
 
-        var settings = new FormsToolStripMenuItem("Settings...");
+        var settings = new FormsToolStripMenuItem(T("Action.Settings"));
         settings.Click += (_, _) => Dispatcher.Invoke(ShowSettings);
         menu.Items.Add(settings);
 
-        var getUpdates = new FormsToolStripMenuItem("Güncelleştirmeleri al...");
+        var getUpdates = new FormsToolStripMenuItem(T("Action.Updates"));
         getUpdates.Click += (_, _) => Dispatcher.Invoke(OpenUpdates);
         menu.Items.Add(getUpdates);
 
-        var showCaptureButton = new FormsToolStripMenuItem("Show Capture Button");
+        var showCaptureButton = new FormsToolStripMenuItem(T("Tray.ShowCaptureButton"));
         showCaptureButton.Click += (_, _) => Dispatcher.Invoke(ShowCaptureButtonFromTray);
         menu.Items.Add(showCaptureButton);
 
         menu.Items.Add(new FormsToolStripSeparator());
 
-        var exit = new FormsToolStripMenuItem("Exit");
+        var exit = new FormsToolStripMenuItem(T("Tray.Exit"));
         exit.Click += (_, _) => Dispatcher.Invoke(ExitApplication);
         menu.Items.Add(exit);
 
@@ -182,7 +184,13 @@ public partial class MainWindow : Window
 
         trayIcon.Text = "Thinksnap";
         trayIcon.Visible = true;
-        trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(StartCapture);
+        trayIcon.DoubleClick -= TrayIcon_DoubleClick;
+        trayIcon.DoubleClick += TrayIcon_DoubleClick;
+    }
+
+    private void TrayIcon_DoubleClick(object? sender, EventArgs e)
+    {
+        Dispatcher.Invoke(StartCapture);
     }
 
     private void ShowCaptureButtonFromTray()
@@ -194,7 +202,7 @@ public partial class MainWindow : Window
 
     private void OpenUpdates()
     {
-        updateService.OpenUpdatePage(appSettings.UpdateUrl, this);
+        updateService.OpenUpdatePage(appSettings.UpdateUrl, this, appSettings);
     }
 
     private void ExitApplication()
@@ -226,7 +234,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        settingsWindow = new SettingsWindow(appSettings.Clone(), TryApplySettings, updateService.OpenUpdatePage)
+        settingsWindow = new SettingsWindow(appSettings.Clone(), TryApplySettings, (url, owner) => updateService.OpenUpdatePage(url, owner, appSettings))
         {
             Owner = null
         };
@@ -241,7 +249,7 @@ public partial class MainWindow : Window
 
         if (HotkeyGesture.TryParse(updatedSettings.CaptureHotkey, out var gesture) is false)
         {
-            return "Unsupported capture hotkey.";
+            return T("Settings.UnsupportedHotkey");
         }
 
         var previousSettings = appSettings.Clone();
@@ -258,9 +266,11 @@ public partial class MainWindow : Window
             }
 
             updatedSettings.CaptureHotkey = gesture.DisplayText;
+            updatedSettings.Language = LocalizationService.NormalizeLanguage(updatedSettings.Language);
             appSettings = updatedSettings.Clone();
             settingsService.Save(appSettings);
             ThemeService.Apply(appSettings);
+            ApplyLocalization();
 
             if (replacementHotkey is not null)
             {
@@ -270,13 +280,14 @@ public partial class MainWindow : Window
             }
 
             SyncFloatingCaptureWindow();
+            ConfigureTrayIcon();
             return null;
         }
         catch (Win32Exception ex)
         {
             replacementHotkey?.Dispose();
             appSettings = previousSettings;
-            return $"{gesture.DisplayText} is unavailable: {ex.Message}";
+            return L("Main.HotkeyUnavailable", gesture.DisplayText, ex.Message);
         }
     }
 
@@ -316,4 +327,20 @@ public partial class MainWindow : Window
             ShowFloatingCaptureWindow();
         }
     }
+
+    private void ApplyLocalization()
+    {
+        LauncherSubtitleText.Text = T("Main.LauncherSubtitle");
+        if (string.IsNullOrWhiteSpace(StatusText.Text) ||
+            string.Equals(StatusText.Text, "Use the floating capture icon, tray, or PrintScreen.", StringComparison.Ordinal))
+        {
+            StatusText.Text = T("Main.LauncherStatus");
+        }
+
+        CaptureButton.Content = T("Floating.CaptureTooltip");
+    }
+
+    private string T(string key) => LocalizationService.Text(appSettings, key);
+
+    private string L(string key, params object[] values) => LocalizationService.Format(appSettings, key, values);
 }

@@ -316,7 +316,8 @@
         </Grid.RowDefinitions>
 
         <StackPanel>
-            <TextBlock Text="Settings"
+            <TextBlock x:Name="SettingsTitleText"
+                       Text="Settings"
                        FontSize="30"
                        FontWeight="SemiBold" />
             <TextBlock x:Name="StatusText"
@@ -350,6 +351,7 @@
                         <Button x:Name="UpdatesCategoryButton" Content="Updates" Tag="{Binding ElementName=UpdatesSection}" Click="CategoryButton_Click" Style="{StaticResource RailButtonStyle}" />
                     </StackPanel>
                     <Button DockPanel.Dock="Bottom"
+                            x:Name="ResetAllButton"
                             Content="Reset all"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Margin="0,14,0,0"
@@ -365,10 +367,12 @@
                 <StackPanel>
                     <Border x:Name="GeneralSection" Style="{StaticResource SectionBorderStyle}">
                         <StackPanel>
-                            <TextBlock Text="General"
+                            <TextBlock x:Name="GeneralTitleText"
+                                       Text="General"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="Startup and shell behavior."
+                            <TextBlock x:Name="GeneralDescriptionText"
+                                       Text="Startup and shell behavior."
                                        Margin="0,6,0,8"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <CheckBox x:Name="FloatingCaptureButtonCheckBox"
@@ -379,7 +383,8 @@
                                       Content="Keep running in tray when the taskbar window is closed"
                                       Checked="MinimizeToTrayCheckBox_Changed"
                                       Unchecked="MinimizeToTrayCheckBox_Changed" />
-                            <Button Content="Reset capture button position"
+                            <Button x:Name="ResetCaptureButtonPositionButton"
+                                    Content="Reset capture button position"
                                     Width="220"
                                     Margin="0,14,0,0"
                                     HorizontalAlignment="Left"
@@ -395,10 +400,12 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="Shortcuts"
+                                <TextBlock x:Name="ShortcutsTitleText"
+                                           Text="Shortcuts"
                                            FontSize="18"
                                            FontWeight="SemiBold" />
-                                <TextBlock Text="Global capture shortcut."
+                                <TextBlock x:Name="ShortcutsDescriptionText"
+                                           Text="Global capture shortcut."
                                            Margin="0,6,0,0"
                                            Foreground="{DynamicResource SecondaryTextBrush}" />
                                 <TextBlock x:Name="HotkeyDisplayText"
@@ -415,7 +422,8 @@
                                         Style="{StaticResource PrimaryButtonStyle}"
                                         PreviewKeyDown="HotkeyRecordButton_PreviewKeyDown"
                                         Click="HotkeyRecordButton_Click" />
-                                <Button Content="Reset"
+                                <Button x:Name="HotkeyResetButton"
+                                        Content="Reset"
                                         MinWidth="88"
                                         Margin="8,0,0,0"
                                         Style="{StaticResource SecondaryButtonStyle}"
@@ -426,10 +434,12 @@
 
                     <Border x:Name="CaptureSection" Style="{StaticResource SectionBorderStyle}">
                         <StackPanel>
-                            <TextBlock Text="Capture"
+                            <TextBlock x:Name="CaptureTitleText"
+                                       Text="Capture"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="Frozen overlay and selection behavior."
+                            <TextBlock x:Name="CaptureDescriptionText"
+                                       Text="Frozen overlay and selection behavior."
                                        Margin="0,6,0,8"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <TextBlock x:Name="CaptureDelayValueText"
@@ -459,13 +469,27 @@
 
                     <Border x:Name="InterfaceSection" Style="{StaticResource SectionBorderStyle}">
                         <StackPanel>
-                            <TextBlock Text="Interface"
+                            <TextBlock x:Name="InterfaceTitleText"
+                                       Text="Interface"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="Theme, accent, and control sizing."
+                            <TextBlock x:Name="InterfaceDescriptionText"
+                                       Text="Theme, accent, and control sizing."
                                        Margin="0,6,0,8"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
-                            <TextBlock Text="Theme preset"
+                            <TextBlock x:Name="LanguageLabelText"
+                                       Text="Language"
+                                       Foreground="{DynamicResource SecondaryTextBrush}" />
+                            <ComboBox x:Name="LanguageBox"
+                                      Margin="0,8,0,16"
+                                      Height="34"
+                                      SelectionChanged="LanguageBox_SelectionChanged">
+                                <ComboBoxItem Content="English" Tag="en" />
+                                <ComboBoxItem Content="Türkçe" Tag="tr" />
+                            </ComboBox>
+
+                            <TextBlock x:Name="ThemePresetLabelText"
+                                       Text="Theme preset"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <ComboBox x:Name="ThemePresetBox"
                                       Margin="0,8,0,0"
@@ -476,7 +500,8 @@
                                 <ComboBoxItem Content="Aurora" />
                             </ComboBox>
 
-                            <TextBlock Text="Accent"
+                            <TextBlock x:Name="AccentLabelText"
+                                       Text="Accent"
                                        Margin="0,16,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <WrapPanel Margin="0,8,0,0">
@@ -511,21 +536,24 @@
 
                     <Border x:Name="EditorSection" Style="{StaticResource SectionBorderStyle}">
                         <StackPanel>
-                            <TextBlock Text="Editor"
+                            <TextBlock x:Name="EditorTitleText"
+                                       Text="Editor"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="Defaults used when a new overlay editor opens."
+                            <TextBlock x:Name="EditorDescriptionText"
+                                       Text="Defaults used when a new overlay editor opens."
                                        Margin="0,6,0,8"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
-                            <TextBlock Text="Default redaction mode"
+                            <TextBlock x:Name="DefaultRedactionLabelText"
+                                       Text="Default redaction mode"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <ComboBox x:Name="DefaultRedactionBox"
                                       Margin="0,8,0,0"
                                       Height="34"
                                       SelectionChanged="DefaultRedactionBox_SelectionChanged">
-                                <ComboBoxItem Content="Pixelate" />
-                                <ComboBoxItem Content="Blackout" />
-                                <ComboBoxItem Content="Blur" />
+                                <ComboBoxItem Content="Pixelate" Tag="Pixelate" />
+                                <ComboBoxItem Content="Blackout" Tag="Blackout" />
+                                <ComboBoxItem Content="Blur" Tag="Blur" />
                             </ComboBox>
                             <TextBlock x:Name="StrokeThicknessValueText"
                                        Margin="0,14,0,0"
@@ -553,18 +581,20 @@
                                       Content="Create new text as bold"
                                       Checked="TextBoldCheckBox_Changed"
                                       Unchecked="TextBoldCheckBox_Changed" />
-                            <TextBlock Text="Default text alignment"
+                            <TextBlock x:Name="TextAlignmentLabelText"
+                                       Text="Default text alignment"
                                        Margin="0,16,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <ComboBox x:Name="TextAlignmentBox"
                                       Margin="0,8,0,0"
                                       Height="34"
                                       SelectionChanged="TextAlignmentBox_SelectionChanged">
-                                <ComboBoxItem Content="Left" />
-                                <ComboBoxItem Content="Center" />
-                                <ComboBoxItem Content="Right" />
+                                <ComboBoxItem Content="Left" Tag="Left" />
+                                <ComboBoxItem Content="Center" Tag="Center" />
+                                <ComboBoxItem Content="Right" Tag="Right" />
                             </ComboBox>
-                            <TextBlock Text="Text color"
+                            <TextBlock x:Name="TextColorLabelText"
+                                       Text="Text color"
                                        Margin="0,16,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <WrapPanel Margin="0,8,0,0">
@@ -577,7 +607,8 @@
                                       Content="Create new text with background"
                                       Checked="TextBackgroundCheckBox_Changed"
                                       Unchecked="TextBackgroundCheckBox_Changed" />
-                            <TextBlock Text="Text background color"
+                            <TextBlock x:Name="TextBackgroundColorLabelText"
+                                       Text="Text background color"
                                        Margin="0,16,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <WrapPanel Margin="0,8,0,0">
@@ -591,13 +622,16 @@
 
                     <Border x:Name="SaveSection" Style="{StaticResource SectionBorderStyle}">
                         <StackPanel>
-                            <TextBlock Text="Save / Clipboard"
+                            <TextBlock x:Name="SaveTitleText"
+                                       Text="Save / Clipboard"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="Output defaults."
+                            <TextBlock x:Name="SaveDescriptionText"
+                                       Text="Output defaults."
                                        Margin="0,6,0,8"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
-                            <TextBlock Text="Filename pattern"
+                            <TextBlock x:Name="FileNamePatternLabelText"
+                                       Text="Filename pattern"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <TextBox x:Name="FileNamePatternBox"
                                      Height="34"
@@ -612,18 +646,22 @@
 
                     <Border x:Name="UpdatesSection" Style="{StaticResource SectionBorderStyle}">
                         <StackPanel>
-                            <TextBlock Text="Updates"
+                            <TextBlock x:Name="UpdatesTitleText"
+                                       Text="Updates"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="Open the latest Thinksnap release page."
+                            <TextBlock x:Name="UpdatesDescriptionText"
+                                       Text="Open the latest Thinksnap release page."
                                        Margin="0,6,0,8"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
-                            <Button Content="Güncelleştirmeleri al..."
+                            <Button x:Name="OpenUpdatesButton"
+                                    Content="Güncelleştirmeleri al..."
                                     Width="210"
                                     HorizontalAlignment="Left"
                                     Style="{StaticResource PrimaryButtonStyle}"
                                     Click="OpenUpdatesButton_Click" />
-                            <TextBlock Text="Update URL"
+                            <TextBlock x:Name="UpdateUrlLabelText"
+                                       Text="Update URL"
                                        Margin="0,16,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <TextBox x:Name="UpdateUrlBox"
@@ -639,7 +677,8 @@
         <StackPanel Grid.Row="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right">
-            <Button Content="Close"
+            <Button x:Name="CloseButton"
+                    Content="Close"
                     MinWidth="92"
                     Style="{StaticResource PrimaryButtonStyle}"
                     Click="CloseButton_Click" />
