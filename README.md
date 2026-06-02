@@ -2,6 +2,16 @@
 
 Thinksnap is a lightweight Windows screenshot MVP inspired by Flameshot. It focuses on region capture, pixelate censorship, annotations, undo, clipboard copy, and PNG save.
 
+<p align="center">
+  <a href="https://github.com/arlkn/thinksnap/releases/download/v0.1.0/Thinksnap.exe">
+    <img src="src/Thinksnap.App/Assets/extension_icon.png" alt="Download Thinksnap" width="128" />
+  </a>
+</p>
+
+<p align="center">
+  <strong>Click the icon to download Thinksnap.exe</strong>
+</p>
+
 ## Requirements
 
 - Windows
