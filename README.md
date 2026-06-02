@@ -3,13 +3,13 @@
 Thinksnap is a lightweight Windows screenshot MVP inspired by Flameshot. It focuses on region capture, pixelate censorship, annotations, undo, clipboard copy, and PNG save.
 
 <p align="center">
-  <a href="https://github.com/arlkn/thinksnap/releases/download/v0.1.0/Thinksnap.exe">
+  <a href="https://github.com/arlkn/thinksnap/releases/download/v0.1.0/ThinksnapSetup-v0.1.0.exe">
     <img src="src/Thinksnap.App/Assets/extension_icon.png" alt="Download Thinksnap" width="128" />
   </a>
 </p>
 
 <p align="center">
-  <strong>Click the icon to download Thinksnap.exe</strong>
+  <strong>Click the icon to download the Thinksnap installer</strong>
 </p>
 
 ## Requirements
@@ -38,6 +38,16 @@ dotnet publish src/Thinksnap.App/Thinksnap.App.csproj -c Release -r win-x64 --se
 ```
 
 The single-file executable is written to `artifacts/publish/win-x64/Thinksnap.exe`.
+
+## Installer
+
+Compile the Inno Setup installer after publishing:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\Thinksnap.iss
+```
+
+The installer is written to `artifacts/installer/ThinksnapSetup-v0.1.0.exe`.
 
 ## MVP Scope
 
