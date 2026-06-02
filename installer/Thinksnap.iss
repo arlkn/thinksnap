@@ -3,7 +3,7 @@
 #define MyAppPublisher "arlkn"
 #define MyAppURL "https://github.com/arlkn/thinksnap"
 #define MyAppExeName "Thinksnap.exe"
-#define MySetupName "ThinksnapSetup-v0.1.0"
+#define MySetupName "ThinksnapSetup"
 
 [Setup]
 AppId={{A760A322-52B6-4C72-A24E-8C467AC1DA24}
