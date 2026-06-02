@@ -12,7 +12,7 @@ Thinksnap is a lightweight Windows screenshot MVP inspired by Flameshot. It focu
   <strong>Click the icon to download the Thinksnap installer</strong>
 </p>
 
-Verify the installer checksum with `ThinksnapSetup.exe.sha256.txt` from the same GitHub release.
+Installer verification and SmartScreen notes are documented in [Thinksnap Security](docs/ThinksnapSecurity.md). Verify each release with `ThinksnapSetup.exe.sha256.txt` from the same GitHub release.
 
 ## Requirements
 
