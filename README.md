@@ -12,6 +12,8 @@ Thinksnap is a lightweight Windows screenshot MVP inspired by Flameshot. It focu
   <strong>Click the icon to download the Thinksnap installer</strong>
 </p>
 
+Verify the installer checksum with `ThinksnapSetup.exe.sha256.txt` from the same GitHub release.
+
 ## Requirements
 
 - Windows
@@ -36,9 +38,12 @@ dotnet test Thinksnap.sln
 ```powershell
 dotnet publish src/Thinksnap.App/Thinksnap.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o artifacts/publish/win-x64
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\Thinksnap.iss
+.\scripts\New-ReleaseChecksums.ps1
 ```
 
 The installer is written to `artifacts/installer/ThinksnapSetup.exe`.
+
+Use `scripts\Sign-ThinksnapInstaller.ps1` with a trusted code-signing certificate before publishing public releases.
 
 ## MVP Scope
 
