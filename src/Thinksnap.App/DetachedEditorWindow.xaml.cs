@@ -1,13 +1,20 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Thinksnap.App.Controls;
 using Thinksnap.App.Models;
 using Thinksnap.App.Services;
 using Thinksnap.Core.Annotations;
 using WpfBrushes = System.Windows.Media.Brushes;
 using WpfButton = System.Windows.Controls.Button;
+using WpfButtonBase = System.Windows.Controls.Primitives.ButtonBase;
 using WpfColor = System.Windows.Media.Color;
+using WpfScrollBar = System.Windows.Controls.Primitives.ScrollBar;
+using WpfSelector = System.Windows.Controls.Primitives.Selector;
+using WpfTextBoxBase = System.Windows.Controls.Primitives.TextBoxBase;
+using WpfThumb = System.Windows.Controls.Primitives.Thumb;
 
 namespace Thinksnap.App;
 
@@ -95,6 +102,32 @@ public partial class DetachedEditorWindow : Window
         {
             System.Windows.MessageBox.Show(this, L("Error.SaveFailed", ex.Message), "Thinksnap", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private void WindowSurface_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState != MouseButtonState.Pressed || IsInteractiveElement(e.OriginalSource as DependencyObject))
+        {
+            return;
+        }
+
+        DragMove();
+        e.Handled = true;
+    }
+
+    private static bool IsInteractiveElement(DependencyObject? source)
+    {
+        while (source is not null)
+        {
+            if (source is AnnotationCanvas or WpfButtonBase or WpfTextBoxBase or WpfThumb or WpfScrollBar or WpfSelector)
+            {
+                return true;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        return false;
     }
 
     private void SetActiveTool(AnnotationTool tool, WpfButton activeButton)

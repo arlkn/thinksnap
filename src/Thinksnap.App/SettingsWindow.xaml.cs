@@ -10,7 +10,7 @@ namespace Thinksnap.App;
 public partial class SettingsWindow : Window
 {
     private readonly Func<AppSettings, string?> applySettings;
-    private readonly Func<string?, Window?, bool> openUpdatePage;
+    private readonly Func<string?, Window?, Task<bool>> openUpdatePage;
     private AppSettings settings;
     private System.Windows.Controls.Button? activeCategoryButton;
     private bool isLoading = true;
@@ -19,7 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(
         AppSettings settings,
         Func<AppSettings, string?> applySettings,
-        Func<string?, Window?, bool> openUpdatePage)
+        Func<string?, Window?, Task<bool>> openUpdatePage)
     {
         this.settings = settings;
         this.applySettings = applySettings;
@@ -175,9 +175,22 @@ public partial class SettingsWindow : Window
         ApplyCurrentSettings();
     }
 
-    private void OpenUpdatesButton_Click(object sender, RoutedEventArgs e)
+    private async void OpenUpdatesButton_Click(object sender, RoutedEventArgs e)
     {
-        openUpdatePage(settings.UpdateUrl, this);
+        OpenUpdatesButton.IsEnabled = false;
+        StatusText.Text = T("Update.Checking");
+        try
+        {
+            var installerStarted = await openUpdatePage(settings.UpdateUrl, this);
+            if (installerStarted)
+            {
+                StatusText.Text = T("Update.StartingInstaller");
+            }
+        }
+        finally
+        {
+            OpenUpdatesButton.IsEnabled = true;
+        }
     }
 
     private void ThemePresetBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

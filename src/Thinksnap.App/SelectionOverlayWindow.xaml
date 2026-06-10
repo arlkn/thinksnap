@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:Thinksnap.App.Controls"
         WindowStyle="None"
+        WindowStartupLocation="Manual"
         ResizeMode="NoResize"
         AllowsTransparency="True"
         Background="Transparent"

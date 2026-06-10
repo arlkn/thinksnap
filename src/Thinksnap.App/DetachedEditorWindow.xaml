@@ -27,7 +27,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid MouseLeftButtonDown="WindowSurface_MouseLeftButtonDown">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />

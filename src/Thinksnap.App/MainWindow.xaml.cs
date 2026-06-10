@@ -121,7 +121,7 @@ public partial class MainWindow : Window
             }
 
             using var screenCapture = captureService.CaptureVirtualScreen();
-            var overlay = new SelectionOverlayWindow(screenCapture, captureService, FormsSystemInformation.VirtualScreen, appSettings);
+            var overlay = new SelectionOverlayWindow(screenCapture, captureService, GetVirtualOverlayBounds(), appSettings);
             _ = overlay.ShowDialog();
 
             StatusText.Text = overlay.ResultMessage;
@@ -144,6 +144,15 @@ public partial class MainWindow : Window
                 SyncFloatingCaptureWindow();
             }
         }
+    }
+
+    private static Rect GetVirtualOverlayBounds()
+    {
+        return new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
     }
 
     private void ConfigureTrayIcon()
@@ -200,9 +209,14 @@ public partial class MainWindow : Window
         _ = TryApplySettings(updated);
     }
 
-    private void OpenUpdates()
+    private async void OpenUpdates()
     {
-        updateService.OpenUpdatePage(appSettings.UpdateUrl, this, appSettings);
+        StatusText.Text = T("Update.Checking");
+        var installerStarted = await updateService.CheckAndInstallLatestAsync(appSettings.UpdateUrl, this, appSettings);
+        if (installerStarted)
+        {
+            StatusText.Text = T("Update.StartingInstaller");
+        }
     }
 
     private void ExitApplication()
@@ -234,7 +248,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        settingsWindow = new SettingsWindow(appSettings.Clone(), TryApplySettings, (url, owner) => updateService.OpenUpdatePage(url, owner, appSettings))
+        settingsWindow = new SettingsWindow(appSettings.Clone(), TryApplySettings, (url, owner) => updateService.CheckAndInstallLatestAsync(url, owner, appSettings))
         {
             Owner = null
         };

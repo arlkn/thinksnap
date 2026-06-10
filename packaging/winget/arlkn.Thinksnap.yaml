@@ -1,0 +1,28 @@
+# Draft manifest for Windows Package Manager submission.
+# Update PackageVersion, InstallerUrl, and InstallerSha256 for every release before submitting.
+PackageIdentifier: arlkn.Thinksnap
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: arlkn
+PackageName: Thinksnap
+License: MIT
+LicenseUrl: https://github.com/arlkn/thinksnap/blob/contender-upgrade/LICENSE
+ShortDescription: Lightweight Windows screenshot and redaction tool.
+Description: Thinksnap is a lightweight Windows screenshot utility focused on fast region capture, annotation, and redaction-first sharing.
+Homepage: https://github.com/arlkn/thinksnap
+PackageUrl: https://github.com/arlkn/thinksnap
+PublisherUrl: https://github.com/arlkn
+Tags:
+  - screenshot
+  - capture
+  - redaction
+  - annotation
+  - privacy
+InstallerType: inno
+Scope: user
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/arlkn/thinksnap/releases/download/v0.1.0/ThinksnapSetup.exe
+    InstallerSha256: E914FA127C12D2A8493EFFC794DCED02764461A5BACF0D6C9FDFF98C92771413
+ManifestType: singleton
+ManifestVersion: 1.9.0

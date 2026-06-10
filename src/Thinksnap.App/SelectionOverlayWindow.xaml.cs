@@ -33,7 +33,7 @@ public partial class SelectionOverlayWindow : Window
     private bool editorFrameAdjusted;
     private WindowsPoint? dragStart;
 
-    public SelectionOverlayWindow(Bitmap screenCapture, CaptureService captureService, Rectangle screenBounds, AppSettings settings)
+    public SelectionOverlayWindow(Bitmap screenCapture, CaptureService captureService, Rect overlayBounds, AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(screenCapture);
         ArgumentNullException.ThrowIfNull(captureService);
@@ -47,10 +47,10 @@ public partial class SelectionOverlayWindow : Window
         toolButtons = [PixelateButton, BlackoutButton, BlurButton, RepeatRedactionButton, ArrowButton, LineButton, RectangleButton, PenButton, TextButton];
         FrozenScreenImage.Source = captureService.ToBitmapSource(screenCapture);
 
-        Left = screenBounds.Left;
-        Top = screenBounds.Top;
-        Width = screenBounds.Width;
-        Height = screenBounds.Height;
+        Left = overlayBounds.Left;
+        Top = overlayBounds.Top;
+        Width = Math.Max(1, overlayBounds.Width);
+        Height = Math.Max(1, overlayBounds.Height);
         scaleX = screenCapture.Width / Width;
         scaleY = screenCapture.Height / Height;
 

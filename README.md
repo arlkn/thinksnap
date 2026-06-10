@@ -12,7 +12,15 @@ Thinksnap is a lightweight Windows screenshot MVP app. It focuses on region capt
   <strong>Click the icon to download the Thinksnap installer</strong>
 </p>
 
-Installer verification and SmartScreen notes are documented in [Thinksnap Security](docs/ThinksnapSecurity.md). Verify each release with `ThinksnapSetup.exe.sha256.txt` from the same GitHub release.
+## Install with PowerShell Command
+
+```powershell
+winget install arlkn.Thinksnap
+```
+
+> Available after Thinksnap is accepted into Windows Package Manager.
+
+Installer verification and SmartScreen notes are documented in [Installing Thinksnap Safely](docs/InstallSafely.md) and [Thinksnap Security](docs/ThinksnapSecurity.md). Verify each release with `ThinksnapSetup.exe.sha256.txt` from the same GitHub release.
 
 ## Requirements
 
@@ -51,6 +59,10 @@ The installer is written to `artifacts/installer/ThinksnapSetup.exe`.
 
 Use `scripts\Sign-ThinksnapInstaller.ps1` with a trusted code-signing certificate before publishing public releases.
 
+## Safe Distribution
+
+Thinksnap is currently distributed through GitHub Releases with SHA256 checksum files. A draft Windows Package Manager manifest is available in [packaging/winget](packaging/winget), with submission notes in [docs/Winget.md](docs/Winget.md).
+
 ## MVP Scope
 
 - Capture a selected screen region.
@@ -61,3 +73,7 @@ Use `scripts\Sign-ThinksnapInstaller.ps1` with a trusted code-signing certificat
 - Save the edited screenshot as a PNG file.
 
 Pixelate censorship is real bitmap censorship in the output, not just a visual overlay.
+
+## License
+
+Thinksnap is licensed under the [MIT License](LICENSE).

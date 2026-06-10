@@ -121,7 +121,16 @@ public static class LocalizationService
             ["Tray.Exit"] = "Exit",
             ["Tray.ShowCaptureButton"] = "Show Capture Button",
             ["Update.NotConfigured"] = "Update URL is not configured yet.",
-            ["Update.OpenFailed"] = "Could not open update page: {0}"
+            ["Update.Checking"] = "Checking for updates...",
+            ["Update.DownloadFailed"] = "Could not download the update: {0}",
+            ["Update.InstallPrompt"] = "Thinksnap {0} is available. Downloaded installer:\n{1}\n\nStart the update now?",
+            ["Update.InstallStartFailed"] = "Could not start the installer: {0}",
+            ["Update.NoInstallerAsset"] = "Latest release was found, but no Windows setup asset is attached yet.",
+            ["Update.NoUpdates"] = "Thinksnap is up to date. Current version: {0}.",
+            ["Update.OpenFailed"] = "Could not open update page: {0}",
+            ["Update.ReleaseReadFailed"] = "Could not read GitHub release information: {0}",
+            ["Update.StartingInstaller"] = "Starting installer...",
+            ["Update.UnableToBuildApiUrl"] = "Could not build the GitHub releases API URL from the update URL."
         },
         ["tr"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -229,7 +238,16 @@ public static class LocalizationService
             ["Tray.Exit"] = "Çıkış",
             ["Tray.ShowCaptureButton"] = "Capture butonunu göster",
             ["Update.NotConfigured"] = "Güncelleme URL'si henüz ayarlanmadı.",
-            ["Update.OpenFailed"] = "Güncelleme sayfası açılamadı: {0}"
+            ["Update.Checking"] = "Güncelleştirmeler kontrol ediliyor...",
+            ["Update.DownloadFailed"] = "Güncelleme indirilemedi: {0}",
+            ["Update.InstallPrompt"] = "Thinksnap {0} mevcut. İndirilen kurulum dosyası:\n{1}\n\nGüncellemeyi şimdi başlatmak ister misin?",
+            ["Update.InstallStartFailed"] = "Kurulum başlatılamadı: {0}",
+            ["Update.NoInstallerAsset"] = "Son release bulundu ama henüz Windows setup dosyası eklenmemiş.",
+            ["Update.NoUpdates"] = "Thinksnap güncel. Mevcut sürüm: {0}.",
+            ["Update.OpenFailed"] = "Güncelleme sayfası açılamadı: {0}",
+            ["Update.ReleaseReadFailed"] = "GitHub release bilgisi okunamadı: {0}",
+            ["Update.StartingInstaller"] = "Kurulum başlatılıyor...",
+            ["Update.UnableToBuildApiUrl"] = "Update URL üzerinden GitHub releases API adresi oluşturulamadı."
         }
     };
 
