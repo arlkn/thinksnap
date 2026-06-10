@@ -27,7 +27,7 @@ dotnet run --project src/Thinksnap.App/Thinksnap.App.csproj
 
 Thinksnap runs from the system tray. Right-click the tray icon and choose `Take Screenshot`, or press `PrintScreen`.
 
-## Install with PowerShell Command
+## PowerShell Command
 
 ```powershell
 winget install arlkn.Thinksnap
