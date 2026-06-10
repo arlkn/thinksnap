@@ -1,7 +1,7 @@
 # Draft manifest for Windows Package Manager submission.
 # Update PackageVersion, InstallerUrl, and InstallerSha256 for every release before submitting.
 PackageIdentifier: arlkn.Thinksnap
-PackageVersion: 0.1.0
+PackageVersion: 0.1.1
 PackageLocale: en-US
 Publisher: arlkn
 PackageName: Thinksnap
@@ -22,7 +22,7 @@ InstallerType: inno
 Scope: user
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/arlkn/thinksnap/releases/download/v0.1.0/ThinksnapSetup.exe
-    InstallerSha256: E914FA127C12D2A8493EFFC794DCED02764461A5BACF0D6C9FDFF98C92771413
+    InstallerUrl: https://github.com/arlkn/thinksnap/releases/download/v0.1.1/ThinksnapSetup.exe
+    InstallerSha256: 915024AFDF4D9C4A32EF9E09BF174434FD2DB03FB14A25297EB4FE300B5B562C
 ManifestType: singleton
 ManifestVersion: 1.9.0
