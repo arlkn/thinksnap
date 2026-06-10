@@ -18,6 +18,34 @@ public sealed class UpdateService
     public async Task<bool> CheckAndInstallLatestAsync(string? updateUrl, Window? owner = null, AppSettings? settings = null)
     {
         var activeSettings = settings ?? new AppSettings();
+        var progressWindow = new UpdateProgressWindow(activeSettings);
+        if (owner?.IsVisible == true)
+        {
+            progressWindow.Owner = owner;
+            progressWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        }
+
+        progressWindow.Show();
+        var progress = new Progress<UpdateProgressState>(progressWindow.Report);
+
+        try
+        {
+            return await CheckAndInstallLatestCoreAsync(updateUrl, progressWindow, activeSettings, progress);
+        }
+        finally
+        {
+            progressWindow.Close();
+        }
+    }
+
+    private static async Task<bool> CheckAndInstallLatestCoreAsync(
+        string? updateUrl,
+        Window owner,
+        AppSettings activeSettings,
+        IProgress<UpdateProgressState> progress)
+    {
+        progress.Report(new UpdateProgressState(LocalizationService.Text(activeSettings, "Update.Checking")));
+
         if (UpdateTarget.TryCreateUri(updateUrl, out var releasePageUri) is false)
         {
             Show(owner, activeSettings, "Update.NotConfigured", MessageBoxImage.Information);
@@ -40,7 +68,6 @@ public sealed class UpdateService
         catch (Exception ex)
         {
             Show(owner, activeSettings, "Update.ReleaseReadFailed", MessageBoxImage.Error, ex.Message);
-            OpenReleasePage(releasePageUri, owner, activeSettings);
             return false;
         }
 
@@ -56,14 +83,16 @@ public sealed class UpdateService
         if (asset is null || Uri.TryCreate(asset.BrowserDownloadUrl, UriKind.Absolute, out var downloadUri) is false)
         {
             Show(owner, activeSettings, "Update.NoInstallerAsset", MessageBoxImage.Information);
-            OpenReleasePage(releasePageUri, owner, activeSettings);
             return false;
         }
 
         string installerPath;
         try
         {
-            installerPath = await DownloadInstallerAsync(downloadUri, asset.Name, release.TagName);
+            progress.Report(new UpdateProgressState(
+                LocalizationService.Format(activeSettings, "Update.Downloading", release.TagName),
+                0));
+            installerPath = await DownloadInstallerAsync(downloadUri, asset.Name, release.TagName, progress, activeSettings);
         }
         catch (Exception ex)
         {
@@ -71,25 +100,20 @@ public sealed class UpdateService
             return false;
         }
 
-        var install = System.Windows.MessageBox.Show(
-            owner,
-            LocalizationService.Format(activeSettings, "Update.InstallPrompt", release.TagName, installerPath),
-            "Thinksnap",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
-        if (install != MessageBoxResult.Yes)
-        {
-            return false;
-        }
-
         try
         {
+            progress.Report(new UpdateProgressState(
+                LocalizationService.Text(activeSettings, "Update.StartingInstaller"),
+                100));
             Process.Start(new ProcessStartInfo
             {
                 FileName = installerPath,
-                Arguments = "/SP- /SILENT /NORESTART /CLOSEAPPLICATIONS",
+                Arguments = "/SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS",
                 UseShellExecute = true
             });
+            await Task.Delay(350);
+            _ = System.Windows.Application.Current.Dispatcher.BeginInvoke(
+                new Action(System.Windows.Application.Current.Shutdown));
             return true;
         }
         catch (Exception ex)
@@ -174,7 +198,12 @@ public sealed class UpdateService
             .FirstOrDefault();
     }
 
-    private static async Task<string> DownloadInstallerAsync(Uri downloadUri, string assetName, string tagName)
+    private static async Task<string> DownloadInstallerAsync(
+        Uri downloadUri,
+        string assetName,
+        string tagName,
+        IProgress<UpdateProgressState> progress,
+        AppSettings settings)
     {
         var safeTag = string.Join("_", tagName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
         var updateDirectory = Path.Combine(
@@ -190,26 +219,27 @@ public sealed class UpdateService
 
         await using var source = await response.Content.ReadAsStreamAsync();
         await using var destination = File.Create(installerPath);
-        await source.CopyToAsync(destination);
-        return installerPath;
-    }
+        var totalBytes = response.Content.Headers.ContentLength;
+        var buffer = new byte[81920];
+        long downloadedBytes = 0;
 
-    private static bool OpenReleasePage(Uri releasePageUri, Window? owner, AppSettings settings)
-    {
-        try
+        while (true)
         {
-            Process.Start(new ProcessStartInfo
+            var bytesRead = await source.ReadAsync(buffer);
+            if (bytesRead == 0)
             {
-                FileName = releasePageUri.AbsoluteUri,
-                UseShellExecute = true
-            });
-            return true;
+                break;
+            }
+
+            await destination.WriteAsync(buffer.AsMemory(0, bytesRead));
+            downloadedBytes += bytesRead;
+            var percentage = UpdateProgressCalculator.CalculatePercentage(downloadedBytes, totalBytes);
+            progress.Report(new UpdateProgressState(
+                LocalizationService.Format(settings, "Update.Downloading", tagName),
+                percentage));
         }
-        catch (Exception ex)
-        {
-            Show(owner, settings, "Update.OpenFailed", MessageBoxImage.Error, ex.Message);
-            return false;
-        }
+
+        return installerPath;
     }
 
     private static void Show(Window? owner, AppSettings settings, string key, MessageBoxImage image, params object[] args)

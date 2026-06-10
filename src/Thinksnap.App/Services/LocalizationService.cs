@@ -105,7 +105,7 @@ public static class LocalizationService
             ["Settings.ToolbarButtonSize"] = "Overlay toolbar buttons: {0} px",
             ["Settings.UnsupportedHotkey"] = "Unsupported capture hotkey.",
             ["Settings.UnsupportedKey"] = "This key is not supported for global shortcuts.",
-            ["Settings.UpdateDescription"] = "Open the latest Thinksnap release page.",
+            ["Settings.UpdateDescription"] = "Check, download, and install Thinksnap updates automatically.",
             ["Settings.UpdateUrl"] = "Update URL",
             ["Settings.WindowTitle"] = "Thinksnap Settings",
             ["Tool.Arrow"] = "Arrow",
@@ -122,6 +122,8 @@ public static class LocalizationService
             ["Tray.ShowCaptureButton"] = "Show Capture Button",
             ["Update.NotConfigured"] = "Update URL is not configured yet.",
             ["Update.Checking"] = "Checking for updates...",
+            ["Update.Downloading"] = "Downloading Thinksnap {0}...",
+            ["Update.Heading"] = "Updating Thinksnap",
             ["Update.DownloadFailed"] = "Could not download the update: {0}",
             ["Update.InstallPrompt"] = "Thinksnap {0} is available. Downloaded installer:\n{1}\n\nStart the update now?",
             ["Update.InstallStartFailed"] = "Could not start the installer: {0}",
@@ -130,7 +132,8 @@ public static class LocalizationService
             ["Update.OpenFailed"] = "Could not open update page: {0}",
             ["Update.ReleaseReadFailed"] = "Could not read GitHub release information: {0}",
             ["Update.StartingInstaller"] = "Starting installer...",
-            ["Update.UnableToBuildApiUrl"] = "Could not build the GitHub releases API URL from the update URL."
+            ["Update.UnableToBuildApiUrl"] = "Could not build the GitHub releases API URL from the update URL.",
+            ["Update.WindowTitle"] = "Thinksnap Update"
         },
         ["tr"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -222,7 +225,7 @@ public static class LocalizationService
             ["Settings.ToolbarButtonSize"] = "Overlay araç butonları: {0} px",
             ["Settings.UnsupportedHotkey"] = "Desteklenmeyen yakalama kısayolu.",
             ["Settings.UnsupportedKey"] = "Bu tuş genel kısayollar için desteklenmiyor.",
-            ["Settings.UpdateDescription"] = "En güncel Thinksnap release sayfasını aç.",
+            ["Settings.UpdateDescription"] = "Thinksnap güncellemelerini otomatik olarak kontrol et, indir ve kur.",
             ["Settings.UpdateUrl"] = "Güncelleme URL'si",
             ["Settings.WindowTitle"] = "Thinksnap Ayarları",
             ["Tool.Arrow"] = "Ok",
@@ -239,6 +242,8 @@ public static class LocalizationService
             ["Tray.ShowCaptureButton"] = "Capture butonunu göster",
             ["Update.NotConfigured"] = "Güncelleme URL'si henüz ayarlanmadı.",
             ["Update.Checking"] = "Güncelleştirmeler kontrol ediliyor...",
+            ["Update.Downloading"] = "Thinksnap {0} indiriliyor...",
+            ["Update.Heading"] = "Thinksnap güncelleniyor",
             ["Update.DownloadFailed"] = "Güncelleme indirilemedi: {0}",
             ["Update.InstallPrompt"] = "Thinksnap {0} mevcut. İndirilen kurulum dosyası:\n{1}\n\nGüncellemeyi şimdi başlatmak ister misin?",
             ["Update.InstallStartFailed"] = "Kurulum başlatılamadı: {0}",
@@ -247,7 +252,8 @@ public static class LocalizationService
             ["Update.OpenFailed"] = "Güncelleme sayfası açılamadı: {0}",
             ["Update.ReleaseReadFailed"] = "GitHub release bilgisi okunamadı: {0}",
             ["Update.StartingInstaller"] = "Kurulum başlatılıyor...",
-            ["Update.UnableToBuildApiUrl"] = "Update URL üzerinden GitHub releases API adresi oluşturulamadı."
+            ["Update.UnableToBuildApiUrl"] = "Update URL üzerinden GitHub releases API adresi oluşturulamadı.",
+            ["Update.WindowTitle"] = "Thinksnap Güncellemesi"
         }
     };
 
