@@ -15,26 +15,41 @@ Thinksnap is a lightweight Windows screenshot MVP app. It focuses on region capt
 ## Install with PowerShell Command
 
 ```powershell
-winget install arlkn.Thinksnap
+$setup = Join-Path $env:TEMP "ThinksnapSetup.exe"
+Invoke-WebRequest "https://github.com/arlkn/thinksnap/releases/latest/download/ThinksnapSetup.exe" -OutFile $setup
+Start-Process $setup -ArgumentList "/SILENT /NORESTART" -Wait
 ```
 
-> Available after Thinksnap is accepted into Windows Package Manager.
+This downloads the latest official GitHub release and installs Thinksnap for the current Windows user.
 
 Installer verification and SmartScreen notes are documented in [Installing Thinksnap Safely](docs/InstallSafely.md) and [Thinksnap Security](docs/ThinksnapSecurity.md). Verify each release with `ThinksnapSetup.exe.sha256.txt` from the same GitHub release.
 
 ## Requirements
 
-- Windows
-- .NET 8 SDK
+- Windows 10 or Windows 11 (x64)
+- No separate .NET installation is required
 
-## Run
+## Run Thinksnap
+
+```powershell
+Start-Process "$env:LOCALAPPDATA\Programs\Thinksnap\Thinksnap.exe"
+```
+
+Thinksnap runs from the system tray. Right-click the tray icon and choose `Take Screenshot`, or press `PrintScreen`.
+
+## Run from Source
 
 ```powershell
 dotnet run --project src/Thinksnap.App/Thinksnap.App.csproj
 ```
 
-Thinksnap runs from the system tray. Right-click the tray icon and choose `Take Screenshot`, or press `PrintScreen`.
+Running from source requires the .NET 8 SDK.
 
+## Test
+
+```powershell
+dotnet test Thinksnap.sln
+```
 
 ## Build Installer
 
