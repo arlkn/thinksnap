@@ -5,6 +5,12 @@ public sealed record SemanticVersion(int Major, int Minor, int Patch, IReadOnlyL
 {
     public bool IsPrerelease => Prerelease.Count > 0;
 
+    public override string ToString()
+    {
+        var version = $"{Major}.{Minor}.{Patch}";
+        return IsPrerelease ? $"{version}-{string.Join('.', Prerelease)}" : version;
+    }
+
     public static SemanticVersion Parse(string value)
     {
         if (TryParse(value, out var version) is false)

@@ -45,6 +45,14 @@ public sealed class SecureUpdatePolicyTests
         Assert.Equal(expectedSign, Math.Sign(comparison));
     }
 
+    [Theory]
+    [InlineData("v0.1.2", "0.1.2")]
+    [InlineData("0.1.2-beta.3", "0.1.2-beta.3")]
+    public void SemanticVersionsUseUserFriendlyText(string value, string expected)
+    {
+        Assert.Equal(expected, SemanticVersion.Parse(value).ToString());
+    }
+
     [Fact]
     public void AutomaticCheckIsDueAfterTwentyFourHours()
     {
