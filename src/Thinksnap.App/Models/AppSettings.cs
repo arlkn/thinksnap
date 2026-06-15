@@ -54,6 +54,12 @@ public sealed class AppSettings
 
     public string UpdateUrl { get; set; } = UpdateTarget.DefaultUrl;
 
+    public UpdateChannel UpdateChannel { get; set; } = UpdateChannel.Stable;
+
+    public bool AutomaticallyCheckForUpdates { get; set; } = true;
+
+    public DateTimeOffset? LastUpdateCheckUtc { get; set; }
+
     public AppSettings Clone()
     {
         return new AppSettings
@@ -82,7 +88,10 @@ public sealed class AppSettings
             ShowTextMoveHandles = ShowTextMoveHandles,
             DefaultFileNamePattern = DefaultFileNamePattern,
             CopyAfterSave = CopyAfterSave,
-            UpdateUrl = UpdateUrl
+            UpdateUrl = UpdateUrl,
+            UpdateChannel = UpdateChannel,
+            AutomaticallyCheckForUpdates = AutomaticallyCheckForUpdates,
+            LastUpdateCheckUtc = LastUpdateCheckUtc
         };
     }
 }

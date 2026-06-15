@@ -4,6 +4,7 @@ using System.Windows.Input;
 using Thinksnap.App.Models;
 using Thinksnap.App.Services;
 using Thinksnap.Core.Hotkeys;
+using Thinksnap.Core.Updates;
 
 namespace Thinksnap.App;
 
@@ -52,7 +53,9 @@ public partial class SettingsWindow : Window
         SetSliderValue(StrokeThicknessSlider, settings.DefaultStrokeThickness, 1, 12);
         SetSliderValue(TextFontSizeSlider, settings.DefaultTextFontSize, 10, 72);
         FileNamePatternBox.Text = settings.DefaultFileNamePattern;
-        UpdateUrlBox.Text = settings.UpdateUrl;
+        AutomaticUpdatesCheckBox.IsChecked = settings.AutomaticallyCheckForUpdates;
+        SelectComboItemByTag(UpdateChannelBox, settings.UpdateChannel.ToString());
+        UpdateLastCheckText();
         UpdateHotkeyDisplay();
         UpdateRangeLabels();
     }
@@ -119,7 +122,11 @@ public partial class SettingsWindow : Window
         UpdatesTitleText.Text = T("Settings.CategoryUpdates");
         UpdatesDescriptionText.Text = T("Settings.UpdateDescription");
         OpenUpdatesButton.Content = T("Action.Updates");
-        UpdateUrlLabelText.Text = T("Settings.UpdateUrl");
+        AutomaticUpdatesCheckBox.Content = T("Settings.AutomaticUpdates");
+        UpdateChannelLabelText.Text = T("Settings.UpdateChannel");
+        SetComboItemContent(UpdateChannelBox, "Stable", T("Settings.UpdateChannelStable"));
+        SetComboItemContent(UpdateChannelBox, "Beta", T("Settings.UpdateChannelBeta"));
+        UpdateLastCheckText();
         CloseButton.Content = T("Action.Close");
 
         UpdateRangeLabels();
@@ -493,14 +500,26 @@ public partial class SettingsWindow : Window
         ApplyCurrentSettings();
     }
 
-    private void UpdateUrlBox_TextChanged(object sender, TextChangedEventArgs e)
+    private void AutomaticUpdatesCheckBox_Changed(object sender, RoutedEventArgs e)
     {
         if (isLoading)
         {
             return;
         }
 
-        settings.UpdateUrl = UpdateUrlBox.Text;
+        settings.AutomaticallyCheckForUpdates = AutomaticUpdatesCheckBox.IsChecked == true;
+        ApplyCurrentSettings();
+    }
+
+    private void UpdateChannelBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (isLoading || UpdateChannelBox.SelectedItem is not ComboBoxItem item ||
+            Enum.TryParse<UpdateChannel>(item.Tag?.ToString(), out var channel) is false)
+        {
+            return;
+        }
+
+        settings.UpdateChannel = channel;
         ApplyCurrentSettings();
     }
 
@@ -558,6 +577,13 @@ public partial class SettingsWindow : Window
         ToolbarButtonSizeValueText.Text = L("Settings.ToolbarButtonSize", Math.Round(ToolbarButtonSizeSlider.Value));
         StrokeThicknessValueText.Text = L("Settings.StrokeThickness", Math.Round(StrokeThicknessSlider.Value));
         TextFontSizeValueText.Text = L("Settings.TextSize", Math.Round(TextFontSizeSlider.Value));
+    }
+
+    private void UpdateLastCheckText()
+    {
+        LastUpdateCheckText.Text = settings.LastUpdateCheckUtc is null
+            ? T("Settings.UpdateNeverChecked")
+            : L("Settings.UpdateLastChecked", settings.LastUpdateCheckUtc.Value.ToLocalTime().ToString("g"));
     }
 
     private void SelectThemePreset(string preset)

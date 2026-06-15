@@ -1,11 +1,13 @@
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using Thinksnap.App.Models;
 using Thinksnap.App.Interop;
 using Thinksnap.App.Services;
 using Thinksnap.Core.Hotkeys;
+using Thinksnap.Core.Updates;
 using FormsContextMenuStrip = System.Windows.Forms.ContextMenuStrip;
 using FormsCursor = System.Windows.Forms.Cursor;
 using FormsIcon = System.Drawing.Icon;
@@ -45,6 +47,7 @@ public partial class MainWindow : Window
         ConfigureTrayIcon();
         RegisterConfiguredHotkey();
         ShowFloatingCaptureWindow();
+        _ = Dispatcher.BeginInvoke(new Action(() => _ = CheckForUpdatesSilentlyAsync()));
     }
 
     private void RegisterConfiguredHotkey()
@@ -171,6 +174,16 @@ public partial class MainWindow : Window
         getUpdates.Click += (_, _) => Dispatcher.Invoke(OpenUpdates);
         menu.Items.Add(getUpdates);
 
+        var readyState = updateService.DownloadState;
+        if (readyState.Verification?.IsValid == true &&
+            string.IsNullOrWhiteSpace(readyState.ReadyInstallerPath) is false &&
+            File.Exists(readyState.ReadyInstallerPath))
+        {
+            var installReadyUpdate = new FormsToolStripMenuItem(T("Tray.InstallReadyUpdate"));
+            installReadyUpdate.Click += (_, _) => Dispatcher.Invoke(() => updateService.InstallReadyUpdate());
+            menu.Items.Add(installReadyUpdate);
+        }
+
         var showCaptureButton = new FormsToolStripMenuItem(T("Tray.ShowCaptureButton"));
         showCaptureButton.Click += (_, _) => Dispatcher.Invoke(ShowCaptureButtonFromTray);
         menu.Items.Add(showCaptureButton);
@@ -195,11 +208,18 @@ public partial class MainWindow : Window
         trayIcon.Visible = true;
         trayIcon.DoubleClick -= TrayIcon_DoubleClick;
         trayIcon.DoubleClick += TrayIcon_DoubleClick;
+        trayIcon.BalloonTipClicked -= TrayIcon_BalloonTipClicked;
+        trayIcon.BalloonTipClicked += TrayIcon_BalloonTipClicked;
     }
 
     private void TrayIcon_DoubleClick(object? sender, EventArgs e)
     {
         Dispatcher.Invoke(StartCapture);
+    }
+
+    private void TrayIcon_BalloonTipClicked(object? sender, EventArgs e)
+    {
+        Dispatcher.Invoke(OpenUpdates);
     }
 
     private void ShowCaptureButtonFromTray()
@@ -213,9 +233,39 @@ public partial class MainWindow : Window
     {
         StatusText.Text = T("Update.Checking");
         var installerStarted = await updateService.CheckAndInstallLatestAsync(appSettings.UpdateUrl, this, appSettings);
+        settingsService.Save(appSettings);
+        ConfigureTrayIcon();
         if (installerStarted)
         {
             StatusText.Text = T("Update.StartingInstaller");
+        }
+    }
+
+    private async Task CheckForUpdatesSilentlyAsync()
+    {
+        if (appSettings.AutomaticallyCheckForUpdates is false ||
+            UpdateCheckSchedule.IsDue(appSettings.LastUpdateCheckUtc, DateTimeOffset.UtcNow) is false)
+        {
+            return;
+        }
+
+        try
+        {
+            var release = await updateService.CheckForUpdateAsync(appSettings.UpdateChannel);
+            appSettings.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
+            settingsService.Save(appSettings);
+            if (release is null)
+            {
+                return;
+            }
+
+            trayIcon.BalloonTipTitle = T("Update.NotificationTitle");
+            trayIcon.BalloonTipText = L("Update.NotificationBody", release.Tag);
+            trayIcon.ShowBalloonTip(7000);
+        }
+        catch
+        {
+            // Silent checks must never interfere with capture startup.
         }
     }
 
@@ -248,13 +298,21 @@ public partial class MainWindow : Window
             return;
         }
 
-        settingsWindow = new SettingsWindow(appSettings.Clone(), TryApplySettings, (url, owner) => updateService.CheckAndInstallLatestAsync(url, owner, appSettings))
+        settingsWindow = new SettingsWindow(appSettings.Clone(), TryApplySettings, CheckForUpdatesFromSettingsAsync)
         {
             Owner = null
         };
         settingsWindow.Closed += (_, _) => settingsWindow = null;
         settingsWindow.Show();
         settingsWindow.Activate();
+    }
+
+    private async Task<bool> CheckForUpdatesFromSettingsAsync(string? updateUrl, Window? owner)
+    {
+        var started = await updateService.CheckAndInstallLatestAsync(updateUrl, owner, appSettings);
+        settingsService.Save(appSettings);
+        ConfigureTrayIcon();
+        return started;
     }
 
     private string? TryApplySettings(AppSettings updatedSettings)

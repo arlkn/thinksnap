@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
@@ -14,23 +17,120 @@ public sealed class UpdateService
 {
     private static readonly HttpClient HttpClient = CreateHttpClient();
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly UpdateStateService stateService = new();
+
+    public UpdateDownloadState DownloadState => stateService.Load();
+
+    public async Task<UpdateRelease?> CheckForUpdateAsync(UpdateChannel channel, CancellationToken cancellationToken = default)
+    {
+        var releases = await ReadReleasesAsync(cancellationToken);
+        var selected = UpdateReleaseSelector.SelectLatest(
+            releases.Where(item => item.Draft is false).Select(item => new UpdateCandidate(item.TagName, item.Prerelease)),
+            channel);
+        if (selected is null ||
+            SemanticVersion.TryParse(selected.Tag, out var selectedVersion) is false ||
+            selectedVersion.CompareTo(GetCurrentVersion()) <= 0)
+        {
+            return null;
+        }
+
+        var release = releases.First(item => string.Equals(item.TagName, selected.Tag, StringComparison.OrdinalIgnoreCase));
+        var installer = SelectAsset(release.Assets, ".exe", "setup");
+        var checksum = SelectAsset(release.Assets, ".sha256.txt", "setup");
+        if (installer is null || checksum is null ||
+            Uri.TryCreate(installer.BrowserDownloadUrl, UriKind.Absolute, out var installerUri) is false ||
+            Uri.TryCreate(checksum.BrowserDownloadUrl, UriKind.Absolute, out var checksumUri) is false ||
+            Uri.TryCreate(release.HtmlUrl, UriKind.Absolute, out var releaseUri) is false)
+        {
+            throw new InvalidOperationException("The release does not contain the required installer and SHA-256 assets.");
+        }
+
+        return new UpdateRelease(
+            release.TagName,
+            selectedVersion,
+            release.Prerelease ? UpdateChannel.Beta : UpdateChannel.Stable,
+            release.Body ?? string.Empty,
+            releaseUri,
+            ToAsset(installer, installerUri),
+            ToAsset(checksum, checksumUri));
+    }
 
     public async Task<bool> CheckAndInstallLatestAsync(string? updateUrl, Window? owner = null, AppSettings? settings = null)
     {
         var activeSettings = settings ?? new AppSettings();
-        var progressWindow = new UpdateProgressWindow(activeSettings);
-        if (owner?.IsVisible == true)
+        using var cancellation = new CancellationTokenSource();
+        var progressWindow = new UpdateProgressWindow(activeSettings, cancellation)
         {
-            progressWindow.Owner = owner;
-            progressWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        }
-
+            Owner = owner?.IsVisible == true ? owner : null,
+            WindowStartupLocation = owner?.IsVisible == true ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen
+        };
         progressWindow.Show();
-        var progress = new Progress<UpdateProgressState>(progressWindow.Report);
 
         try
         {
-            return await CheckAndInstallLatestCoreAsync(updateUrl, progressWindow, activeSettings, progress);
+            progressWindow.Report(new UpdateProgressState(LocalizationService.Text(activeSettings, "Update.Checking")));
+            var release = await CheckForUpdateAsync(activeSettings.UpdateChannel, cancellation.Token);
+            activeSettings.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
+            if (release is null)
+            {
+                progressWindow.Close();
+                Show(owner, activeSettings, "Update.NoUpdates", MessageBoxImage.Information, GetCurrentVersion());
+                return false;
+            }
+
+            if (await progressWindow.ShowReleaseAsync(release) != UpdateWindowAction.Download)
+            {
+                return false;
+            }
+
+            UpdateVerificationResult verification;
+            while (true)
+            {
+                try
+                {
+                    progressWindow.ShowProgress();
+                    verification = await DownloadAndVerifyAsync(
+                        release,
+                        new Progress<UpdateProgressState>(progressWindow.Report),
+                        cancellation.Token);
+                    if (verification.IsValid)
+                    {
+                        break;
+                    }
+
+                    var action = await progressWindow.ShowErrorAsync(
+                        LocalizationService.Format(activeSettings, "Update.VerificationFailed", verification.Error ?? string.Empty));
+                    if (action != UpdateWindowAction.Retry)
+                    {
+                        return false;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    var action = await progressWindow.ShowErrorAsync(
+                        LocalizationService.Format(activeSettings, "Update.DownloadFailed", ex.Message));
+                    if (action != UpdateWindowAction.Retry)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return await progressWindow.ShowReadyAsync(release, verification) == UpdateWindowAction.Install &&
+                InstallReadyUpdate();
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Show(progressWindow, activeSettings, "Update.DownloadFailed", MessageBoxImage.Error, ex.Message);
+            return false;
         }
         finally
         {
@@ -38,209 +138,248 @@ public sealed class UpdateService
         }
     }
 
-    private static async Task<bool> CheckAndInstallLatestCoreAsync(
-        string? updateUrl,
-        Window owner,
-        AppSettings activeSettings,
-        IProgress<UpdateProgressState> progress)
-    {
-        progress.Report(new UpdateProgressState(LocalizationService.Text(activeSettings, "Update.Checking")));
-
-        if (UpdateTarget.TryCreateUri(updateUrl, out var releasePageUri) is false)
-        {
-            Show(owner, activeSettings, "Update.NotConfigured", MessageBoxImage.Information);
-            return false;
-        }
-
-        if (TryCreateLatestReleaseApiUri(releasePageUri, out var apiUri) is false)
-        {
-            Show(owner, activeSettings, "Update.UnableToBuildApiUrl", MessageBoxImage.Error);
-            return false;
-        }
-
-        GitHubRelease release;
-        try
-        {
-            await using var releaseStream = await HttpClient.GetStreamAsync(apiUri);
-            release = await JsonSerializer.DeserializeAsync<GitHubRelease>(releaseStream, JsonOptions) ??
-                throw new InvalidOperationException("Empty GitHub release response.");
-        }
-        catch (Exception ex)
-        {
-            Show(owner, activeSettings, "Update.ReleaseReadFailed", MessageBoxImage.Error, ex.Message);
-            return false;
-        }
-
-        var currentVersion = GetCurrentVersion();
-        var latestVersion = ParseVersion(release.TagName);
-        if (latestVersion is not null && latestVersion.CompareTo(currentVersion) <= 0)
-        {
-            Show(owner, activeSettings, "Update.NoUpdates", MessageBoxImage.Information, currentVersion);
-            return false;
-        }
-
-        var asset = SelectInstallerAsset(release.Assets ?? Array.Empty<GitHubAsset>());
-        if (asset is null || Uri.TryCreate(asset.BrowserDownloadUrl, UriKind.Absolute, out var downloadUri) is false)
-        {
-            Show(owner, activeSettings, "Update.NoInstallerAsset", MessageBoxImage.Information);
-            return false;
-        }
-
-        string installerPath;
-        try
-        {
-            progress.Report(new UpdateProgressState(
-                LocalizationService.Format(activeSettings, "Update.Downloading", release.TagName),
-                0));
-            installerPath = await DownloadInstallerAsync(downloadUri, asset.Name, release.TagName, progress, activeSettings);
-        }
-        catch (Exception ex)
-        {
-            Show(owner, activeSettings, "Update.DownloadFailed", MessageBoxImage.Error, ex.Message);
-            return false;
-        }
-
-        try
-        {
-            progress.Report(new UpdateProgressState(
-                LocalizationService.Text(activeSettings, "Update.StartingInstaller"),
-                100));
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = installerPath,
-                Arguments = "/SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS",
-                UseShellExecute = true
-            });
-            await Task.Delay(350);
-            _ = System.Windows.Application.Current.Dispatcher.BeginInvoke(
-                new Action(System.Windows.Application.Current.Shutdown));
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Show(owner, activeSettings, "Update.InstallStartFailed", MessageBoxImage.Error, ex.Message);
-            return false;
-        }
-    }
-
-    private static HttpClient CreateHttpClient()
-    {
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Thinksnap-Updater");
-        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-        client.Timeout = TimeSpan.FromSeconds(45);
-        return client;
-    }
-
-    private static bool TryCreateLatestReleaseApiUri(Uri releasePageUri, out Uri apiUri)
-    {
-        apiUri = new Uri(UpdateTarget.DefaultUrl);
-        if (string.Equals(releasePageUri.Host, "api.github.com", StringComparison.OrdinalIgnoreCase))
-        {
-            apiUri = releasePageUri;
-            return true;
-        }
-
-        if (string.Equals(releasePageUri.Host, "github.com", StringComparison.OrdinalIgnoreCase) is false)
-        {
-            return false;
-        }
-
-        var segments = releasePageUri.AbsolutePath
-            .Trim('/')
-            .Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length < 2)
-        {
-            return false;
-        }
-
-        apiUri = new Uri($"https://api.github.com/repos/{segments[0]}/{segments[1]}/releases/latest");
-        return true;
-    }
-
-    private static Version GetCurrentVersion()
-    {
-        var assembly = typeof(UpdateService).Assembly;
-        var informationalVersion = assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion;
-        return ParseVersion(informationalVersion) ?? assembly.GetName().Version ?? new Version(0, 0, 0);
-    }
-
-    private static Version? ParseVersion(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        var normalized = value.Trim();
-        if (normalized.StartsWith('v') || normalized.StartsWith('V'))
-        {
-            normalized = normalized[1..];
-        }
-
-        var metadataIndex = normalized.IndexOfAny(new[] { '+', '-' });
-        if (metadataIndex >= 0)
-        {
-            normalized = normalized[..metadataIndex];
-        }
-
-        return Version.TryParse(normalized, out var version) ? version : null;
-    }
-
-    private static GitHubAsset? SelectInstallerAsset(IReadOnlyList<GitHubAsset> assets)
-    {
-        return assets
-            .Where(asset => asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(asset => asset.Name.Contains("setup", StringComparison.OrdinalIgnoreCase))
-            .ThenByDescending(asset => asset.Name.Contains("thinksnap", StringComparison.OrdinalIgnoreCase))
-            .FirstOrDefault();
-    }
-
-    private static async Task<string> DownloadInstallerAsync(
-        Uri downloadUri,
-        string assetName,
-        string tagName,
+    public async Task<UpdateVerificationResult> DownloadAndVerifyAsync(
+        UpdateRelease release,
         IProgress<UpdateProgressState> progress,
-        AppSettings settings)
+        CancellationToken cancellationToken)
     {
-        var safeTag = string.Join("_", tagName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
-        var updateDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Thinksnap",
-            "Updates",
-            safeTag);
-        Directory.CreateDirectory(updateDirectory);
+        var state = PrepareState(release);
+        var partialPath = state.PartialPath!;
+        Directory.CreateDirectory(Path.GetDirectoryName(partialPath)!);
+        var existingLength = File.Exists(partialPath) ? new FileInfo(partialPath).Length : 0;
 
-        var installerPath = Path.Combine(updateDirectory, assetName);
-        using var response = await HttpClient.GetAsync(downloadUri, HttpCompletionOption.ResponseHeadersRead);
+        using var request = new HttpRequestMessage(HttpMethod.Get, release.Installer.DownloadUri);
+        if (existingLength > 0)
+        {
+            request.Headers.Range = new RangeHeaderValue(existingLength, null);
+            if (EntityTagHeaderValue.TryParse(state.ETag, out var entityTag))
+            {
+                request.Headers.IfRange = new RangeConditionHeaderValue(entityTag);
+            }
+            else if (state.LastModified is not null)
+            {
+                request.Headers.IfRange = new RangeConditionHeaderValue(state.LastModified.Value);
+            }
+        }
+
+        using var response = await HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable && existingLength > 0)
+        {
+            File.Delete(partialPath);
+            state.DownloadedBytes = 0;
+            state.ETag = null;
+            state.LastModified = null;
+            stateService.Save(state);
+            return await DownloadAndVerifyAsync(release, progress, cancellationToken);
+        }
+
         response.EnsureSuccessStatusCode();
+        var resumed = existingLength > 0 && response.StatusCode == HttpStatusCode.PartialContent;
+        if (resumed is false)
+        {
+            existingLength = 0;
+        }
 
-        await using var source = await response.Content.ReadAsStreamAsync();
-        await using var destination = File.Create(installerPath);
-        var totalBytes = response.Content.Headers.ContentLength;
+        state.ETag = response.Headers.ETag?.ToString();
+        state.LastModified = response.Content.Headers.LastModified;
+        stateService.Save(state);
+        var totalBytes = response.Content.Headers.ContentRange?.Length ??
+            (response.Content.Headers.ContentLength is long length ? length + existingLength : release.Installer.Size);
+        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var destination = new FileStream(
+            partialPath,
+            resumed ? FileMode.Append : FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            81920,
+            true);
         var buffer = new byte[81920];
-        long downloadedBytes = 0;
+        var downloadedBytes = existingLength;
+        var lastPersisted = downloadedBytes;
 
         while (true)
         {
-            var bytesRead = await source.ReadAsync(buffer);
+            var bytesRead = await source.ReadAsync(buffer, cancellationToken);
             if (bytesRead == 0)
             {
                 break;
             }
 
-            await destination.WriteAsync(buffer.AsMemory(0, bytesRead));
+            await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             downloadedBytes += bytesRead;
-            var percentage = UpdateProgressCalculator.CalculatePercentage(downloadedBytes, totalBytes);
+            state.DownloadedBytes = downloadedBytes;
+            if (downloadedBytes - lastPersisted >= 1024 * 1024)
+            {
+                stateService.Save(state);
+                lastPersisted = downloadedBytes;
+            }
+
             progress.Report(new UpdateProgressState(
-                LocalizationService.Format(settings, "Update.Downloading", tagName),
-                percentage));
+                $"Downloading {release.Tag}...",
+                UpdateProgressCalculator.CalculatePercentage(downloadedBytes, totalBytes),
+                downloadedBytes,
+                totalBytes));
         }
 
-        return installerPath;
+        await destination.FlushAsync(cancellationToken);
+        await destination.DisposeAsync();
+        stateService.Save(state);
+        progress.Report(new UpdateProgressState("Verifying update...", 100, downloadedBytes, totalBytes));
+        var checksumText = await HttpClient.GetStringAsync(release.Checksum.DownloadUri, cancellationToken);
+        var checksumDigest = UpdateHashPolicy.Normalize(checksumText);
+        var calculatedDigest = await CalculateSha256Async(partialPath, cancellationToken);
+        var hashResult = UpdateHashPolicy.Verify(release.Installer.Digest, checksumDigest, calculatedDigest);
+        if (hashResult.IsValid is false)
+        {
+            DeleteInvalidFiles(state);
+            return new(false, UpdateHashPolicy.Normalize(release.Installer.Digest), checksumDigest, calculatedDigest,
+                UpdateSignatureStatus.Invalid, null, hashResult.Error);
+        }
+
+        var signature = AuthenticodeVerifier.Verify(partialPath);
+        if (signature.Status == UpdateSignatureStatus.Invalid)
+        {
+            DeleteInvalidFiles(state);
+            return new(false, hashResult.NormalizedDigest, checksumDigest, calculatedDigest,
+                signature.Status, signature.Signer, signature.Error);
+        }
+
+        var readyPath = Path.ChangeExtension(partialPath, ".exe");
+        File.Move(partialPath, readyPath, true);
+        var verification = new UpdateVerificationResult(true, hashResult.NormalizedDigest, checksumDigest, calculatedDigest,
+            signature.Status, signature.Signer, null);
+        state.PartialPath = null;
+        state.ReadyInstallerPath = readyPath;
+        state.DownloadedBytes = downloadedBytes;
+        state.Verification = verification;
+        stateService.Save(state);
+        return verification;
     }
+
+    public bool InstallReadyUpdate()
+    {
+        var state = stateService.Load();
+        if (state.Verification?.IsValid != true ||
+            string.IsNullOrWhiteSpace(state.ReadyInstallerPath) ||
+            File.Exists(state.ReadyInstallerPath) is false)
+        {
+            return false;
+        }
+
+        var calculatedDigest = CalculateSha256(state.ReadyInstallerPath);
+        var hashResult = UpdateHashPolicy.Verify(
+            state.Verification.GitHubDigest,
+            state.Verification.ChecksumDigest,
+            calculatedDigest);
+        var signature = AuthenticodeVerifier.Verify(state.ReadyInstallerPath);
+        if (hashResult.IsValid is false || signature.Status == UpdateSignatureStatus.Invalid)
+        {
+            DeleteInvalidFiles(state);
+            return false;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = state.ReadyInstallerPath,
+                Arguments = "/SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            return false;
+        }
+
+        stateService.Clear();
+        _ = System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(System.Windows.Application.Current.Shutdown));
+        return true;
+    }
+
+    private UpdateDownloadState PrepareState(UpdateRelease release)
+    {
+        var state = stateService.Load();
+        var partialPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Thinksnap",
+            "Updates",
+            release.Tag.TrimStart('v', 'V'),
+            release.Installer.Name + ".part");
+        if (string.Equals(state.Version, release.Tag, StringComparison.OrdinalIgnoreCase) is false)
+        {
+            state = new UpdateDownloadState { Version = release.Tag, PartialPath = partialPath };
+        }
+        else
+        {
+            state.PartialPath ??= partialPath;
+        }
+
+        stateService.Save(state);
+        return state;
+    }
+
+    private void DeleteInvalidFiles(UpdateDownloadState state)
+    {
+        foreach (var path in new[] { state.PartialPath, state.ReadyInstallerPath })
+        {
+            if (string.IsNullOrWhiteSpace(path) is false && File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+
+        stateService.Clear();
+    }
+
+    private static async Task<IReadOnlyList<GitHubRelease>> ReadReleasesAsync(CancellationToken cancellationToken)
+    {
+        await using var stream = await HttpClient.GetStreamAsync(
+            "https://api.github.com/repos/arlkn/thinksnap/releases?per_page=30",
+            cancellationToken);
+        return await JsonSerializer.DeserializeAsync<IReadOnlyList<GitHubRelease>>(stream, JsonOptions, cancellationToken) ??
+            Array.Empty<GitHubRelease>();
+    }
+
+    private static UpdateAsset ToAsset(GitHubAsset asset, Uri uri) => new(asset.Name, uri, asset.Size, asset.Digest);
+
+    private static GitHubAsset? SelectAsset(IReadOnlyList<GitHubAsset> assets, string suffix, string preferredName) =>
+        assets.Where(asset => asset.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(asset => asset.Name.Contains(preferredName, StringComparison.OrdinalIgnoreCase))
+            .FirstOrDefault();
+
+    private static SemanticVersion GetCurrentVersion()
+    {
+        var assembly = typeof(UpdateService).Assembly;
+        var value = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ??
+            assembly.GetName().Version?.ToString() ?? "0.0.0";
+        return SemanticVersion.TryParse(value, out var version) ? version : new(0, 0, 0, Array.Empty<string>());
+    }
+
+    private static async Task<string> CalculateSha256Async(string filePath, CancellationToken cancellationToken)
+    {
+        await using var stream = File.OpenRead(filePath);
+        using var algorithm = SHA256.Create();
+        return Convert.ToHexString(await algorithm.ComputeHashAsync(stream, cancellationToken)).ToLowerInvariant();
+    }
+
+    private static string CalculateSha256(string filePath)
+    {
+        using var stream = File.OpenRead(filePath);
+        using var algorithm = SHA256.Create();
+        return Convert.ToHexString(algorithm.ComputeHash(stream)).ToLowerInvariant();
+    }
+
+    private static HttpClient CreateHttpClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Thinksnap-Updater");
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
+        return client;
+    }
+
+    private static string FormatBytes(long bytes) => bytes <= 0 ? "Unknown size" : $"{bytes / 1024d / 1024d:0.0} MB";
 
     private static void Show(Window? owner, AppSettings settings, string key, MessageBoxImage image, params object[] args)
     {
@@ -253,9 +392,14 @@ public sealed class UpdateService
     private sealed record GitHubRelease(
         [property: JsonPropertyName("tag_name")] string TagName,
         [property: JsonPropertyName("html_url")] string HtmlUrl,
+        [property: JsonPropertyName("body")] string? Body,
+        [property: JsonPropertyName("draft")] bool Draft,
+        [property: JsonPropertyName("prerelease")] bool Prerelease,
         [property: JsonPropertyName("assets")] IReadOnlyList<GitHubAsset> Assets);
 
     private sealed record GitHubAsset(
         [property: JsonPropertyName("name")] string Name,
-        [property: JsonPropertyName("browser_download_url")] string BrowserDownloadUrl);
+        [property: JsonPropertyName("browser_download_url")] string BrowserDownloadUrl,
+        [property: JsonPropertyName("size")] long Size,
+        [property: JsonPropertyName("digest")] string? Digest);
 }

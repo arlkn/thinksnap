@@ -651,8 +651,25 @@
                                        FontSize="18"
                                        FontWeight="SemiBold" />
                             <TextBlock x:Name="UpdatesDescriptionText"
-                                       Text="Open the latest Thinksnap release page."
+                                       Text="Check, download, and verify updates securely."
                                        Margin="0,6,0,8"
+                                       Foreground="{DynamicResource SecondaryTextBrush}" />
+                            <CheckBox x:Name="AutomaticUpdatesCheckBox"
+                                      Content="Check automatically once per day"
+                                      Checked="AutomaticUpdatesCheckBox_Changed"
+                                      Unchecked="AutomaticUpdatesCheckBox_Changed" />
+                            <TextBlock x:Name="UpdateChannelLabelText"
+                                       Text="Update channel"
+                                       Margin="0,14,0,0"
+                                       Foreground="{DynamicResource SecondaryTextBrush}" />
+                            <ComboBox x:Name="UpdateChannelBox"
+                                      Margin="0,8,0,0"
+                                      SelectionChanged="UpdateChannelBox_SelectionChanged">
+                                <ComboBoxItem Content="Stable" Tag="Stable" />
+                                <ComboBoxItem Content="Beta" Tag="Beta" />
+                            </ComboBox>
+                            <TextBlock x:Name="LastUpdateCheckText"
+                                       Margin="0,12,0,12"
                                        Foreground="{DynamicResource SecondaryTextBrush}" />
                             <Button x:Name="OpenUpdatesButton"
                                     Content="Güncelleştirmeleri al..."
@@ -660,14 +677,6 @@
                                     HorizontalAlignment="Left"
                                     Style="{StaticResource PrimaryButtonStyle}"
                                     Click="OpenUpdatesButton_Click" />
-                            <TextBlock x:Name="UpdateUrlLabelText"
-                                       Text="Update URL"
-                                       Margin="0,16,0,0"
-                                       Foreground="{DynamicResource SecondaryTextBrush}" />
-                            <TextBox x:Name="UpdateUrlBox"
-                                     Height="34"
-                                     Margin="0,8,0,0"
-                                     TextChanged="UpdateUrlBox_TextChanged" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
