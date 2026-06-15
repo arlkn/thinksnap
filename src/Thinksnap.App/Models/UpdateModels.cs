@@ -44,6 +44,7 @@ public sealed class UpdateDownloadState
     public string? ETag { get; set; }
     public DateTimeOffset? LastModified { get; set; }
     public UpdateVerificationResult? Verification { get; set; }
+    public bool InstallPending { get; set; }
 }
 
 public enum UpdateWindowAction
@@ -52,5 +53,6 @@ public enum UpdateWindowAction
     Install,
     Later,
     Retry,
-    Cancel
+    Cancel,
+    Close
 }

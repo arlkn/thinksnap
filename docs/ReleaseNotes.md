@@ -2,6 +2,13 @@
 
 This page contains the public change history for Thinksnap releases.
 
+## 0.1.4
+
+- Simplified the in-app updater to show status and progress without embedded patch notes.
+- Fixed repeated update prompts after a successful installation.
+- Added automatic application restart after silent updates.
+- Added a verified 100% completion indicator after the updated application starts.
+
 ## 0.1.3
 
 - Fixed update dialogs displaying the internal semantic-version object instead of a readable version number.

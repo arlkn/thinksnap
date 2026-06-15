@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private FloatingCaptureWindow? floatingCaptureWindow;
     private GlobalHotkey? printScreenHotkey;
     private SettingsWindow? settingsWindow;
+    private UpdateProgressWindow? updateCompletionWindow;
     private bool isCapturing;
     private bool isExiting;
 
@@ -44,10 +45,20 @@ public partial class MainWindow : Window
         Closed += MainWindow_Closed;
 
         _ = new WindowInteropHelper(this).EnsureHandle();
+        var completedUpdateVersion = updateService.ConsumeCompletedUpdate();
         ConfigureTrayIcon();
         RegisterConfiguredHotkey();
         ShowFloatingCaptureWindow();
-        _ = Dispatcher.BeginInvoke(new Action(() => _ = CheckForUpdatesSilentlyAsync()));
+        _ = Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (completedUpdateVersion is not null)
+            {
+                ShowCompletedUpdate(completedUpdateVersion);
+                return;
+            }
+
+            _ = CheckForUpdatesSilentlyAsync();
+        }));
     }
 
     private void RegisterConfiguredHotkey()
@@ -267,6 +278,30 @@ public partial class MainWindow : Window
         {
             // Silent checks must never interfere with capture startup.
         }
+    }
+
+    private void ShowCompletedUpdate(string version)
+    {
+        if (updateCompletionWindow is { IsVisible: true })
+        {
+            updateCompletionWindow.Activate();
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        updateCompletionWindow = new UpdateProgressWindow(appSettings, cancellation)
+        {
+            Owner = null,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen
+        };
+        updateCompletionWindow.ShowCompleted(version);
+        updateCompletionWindow.Closed += (_, _) =>
+        {
+            cancellation.Dispose();
+            updateCompletionWindow = null;
+        };
+        updateCompletionWindow.Show();
+        updateCompletionWindow.Activate();
     }
 
     private void ExitApplication()

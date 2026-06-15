@@ -21,6 +21,20 @@ public sealed class UpdateService
 
     public UpdateDownloadState DownloadState => stateService.Load();
 
+    public string? ConsumeCompletedUpdate()
+    {
+        var state = stateService.Load();
+        if (state.InstallPending is false ||
+            UpdateInstallCompletionPolicy.IsCompleted(state.Version, GetCurrentVersion().ToString()) is false)
+        {
+            return null;
+        }
+
+        var completedVersion = state.Version?.TrimStart('v', 'V');
+        stateService.Clear();
+        return completedVersion;
+    }
+
     public async Task<UpdateRelease?> CheckForUpdateAsync(UpdateChannel channel, CancellationToken cancellationToken = default)
     {
         var releases = await ReadReleasesAsync(cancellationToken);
@@ -92,7 +106,8 @@ public sealed class UpdateService
                     verification = await DownloadAndVerifyAsync(
                         release,
                         new Progress<UpdateProgressState>(progressWindow.Report),
-                        cancellation.Token);
+                        cancellation.Token,
+                        activeSettings);
                     if (verification.IsValid)
                     {
                         break;
@@ -141,8 +156,10 @@ public sealed class UpdateService
     public async Task<UpdateVerificationResult> DownloadAndVerifyAsync(
         UpdateRelease release,
         IProgress<UpdateProgressState> progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AppSettings? settings = null)
     {
+        var activeSettings = settings ?? new AppSettings();
         var state = PrepareState(release);
         var partialPath = state.PartialPath!;
         Directory.CreateDirectory(Path.GetDirectoryName(partialPath)!);
@@ -170,7 +187,7 @@ public sealed class UpdateService
             state.ETag = null;
             state.LastModified = null;
             stateService.Save(state);
-            return await DownloadAndVerifyAsync(release, progress, cancellationToken);
+            return await DownloadAndVerifyAsync(release, progress, cancellationToken, activeSettings);
         }
 
         response.EnsureSuccessStatusCode();
@@ -215,7 +232,7 @@ public sealed class UpdateService
             }
 
             progress.Report(new UpdateProgressState(
-                $"Downloading {release.Tag}...",
+                LocalizationService.Format(activeSettings, "Update.Downloading", release.Tag),
                 UpdateProgressCalculator.CalculatePercentage(downloadedBytes, totalBytes),
                 downloadedBytes,
                 totalBytes));
@@ -224,7 +241,11 @@ public sealed class UpdateService
         await destination.FlushAsync(cancellationToken);
         await destination.DisposeAsync();
         stateService.Save(state);
-        progress.Report(new UpdateProgressState("Verifying update...", 100, downloadedBytes, totalBytes));
+        progress.Report(new UpdateProgressState(
+            LocalizationService.Text(activeSettings, "Update.Verifying"),
+            100,
+            downloadedBytes,
+            totalBytes));
         var checksumText = await HttpClient.GetStringAsync(release.Checksum.DownloadUri, cancellationToken);
         var checksumDigest = UpdateHashPolicy.Normalize(checksumText);
         var calculatedDigest = await CalculateSha256Async(partialPath, cancellationToken);
@@ -280,6 +301,8 @@ public sealed class UpdateService
 
         try
         {
+            state.InstallPending = true;
+            stateService.Save(state);
             Process.Start(new ProcessStartInfo
             {
                 FileName = state.ReadyInstallerPath,
@@ -289,11 +312,12 @@ public sealed class UpdateService
         }
         catch
         {
+            state.InstallPending = false;
+            stateService.Save(state);
             return false;
         }
 
-        stateService.Clear();
-        _ = System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(System.Windows.Application.Current.Shutdown));
+        System.Windows.Application.Current.Shutdown();
         return true;
     }
 

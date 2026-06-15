@@ -72,4 +72,17 @@ public sealed class SecureUpdatePolicyTests
         Assert.False(UpdateHashPolicy.Verify(null, digest, digest).IsValid);
         Assert.False(UpdateHashPolicy.Verify($"sha256:{digest}", new string('0', 64), digest).IsValid);
     }
+
+    [Theory]
+    [InlineData("v0.1.4", "0.1.4", true)]
+    [InlineData("v0.1.4", "0.1.5", true)]
+    [InlineData("v0.1.4", "0.1.3", false)]
+    [InlineData("v0.1.4", "invalid", false)]
+    public void CompletedInstallRequiresCurrentVersionAtOrAbovePendingVersion(
+        string pendingVersion,
+        string currentVersion,
+        bool expected)
+    {
+        Assert.Equal(expected, UpdateInstallCompletionPolicy.IsCompleted(pendingVersion, currentVersion));
+    }
 }

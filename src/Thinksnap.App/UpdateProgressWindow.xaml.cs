@@ -63,6 +63,23 @@ public partial class UpdateProgressWindow : Window
             T("Update.Later"));
     }
 
+    public void ShowCompleted(string version)
+    {
+        HeadingText.Text = T("Update.CompletedHeading");
+        StatusText.Text = LocalizationService.Format(settings, "Update.CompletedStatus", version);
+        DownloadProgressBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty, null);
+        DownloadProgressBar.Visibility = Visibility.Visible;
+        DownloadProgressBar.Value = 100;
+        PercentageText.Visibility = Visibility.Visible;
+        PercentageText.Text = T("Update.CompletedProgress");
+        ReleaseNotesButton.Visibility = Visibility.Collapsed;
+        SecondaryButton.Visibility = Visibility.Collapsed;
+        CancelButton.Visibility = Visibility.Collapsed;
+        PrimaryButton.Tag = UpdateWindowAction.Close;
+        PrimaryButton.Content = T("Action.Close");
+        PrimaryButton.Visibility = Visibility.Visible;
+    }
+
     public Task<UpdateWindowAction> ShowErrorAsync(string message)
     {
         HeadingText.Text = T("Update.ErrorHeading");
@@ -76,6 +93,7 @@ public partial class UpdateProgressWindow : Window
 
     public void ShowProgress()
     {
+        ReleaseNotesButton.Visibility = Visibility.Collapsed;
         DownloadProgressBar.Visibility = Visibility.Visible;
         PercentageText.Visibility = Visibility.Visible;
         PrimaryButton.Visibility = Visibility.Collapsed;
@@ -125,6 +143,12 @@ public partial class UpdateProgressWindow : Window
     {
         if (sender is FrameworkElement { Tag: UpdateWindowAction action })
         {
+            if (action == UpdateWindowAction.Close)
+            {
+                Close();
+                return;
+            }
+
             pendingAction?.TrySetResult(action);
         }
     }
