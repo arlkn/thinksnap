@@ -41,7 +41,7 @@
             </Setter>
         </Style>
         <Style x:Key="GreenProgressBarStyle" TargetType="ProgressBar">
-            <Setter Property="Height" Value="12" />
+            <Setter Property="Height" Value="24" />
             <Setter Property="Background" Value="#26303A" />
             <Setter Property="Foreground" Value="#22C55E" />
             <Setter Property="Template">
@@ -90,11 +90,13 @@
                          Maximum="100"
                          Style="{StaticResource GreenProgressBarStyle}" />
             <TextBlock x:Name="PercentageText"
-                       Margin="0,20,0,0"
-                       HorizontalAlignment="Right"
+                       Panel.ZIndex="1"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
                        FontSize="12"
                        FontWeight="SemiBold"
-                       Foreground="#22C55E" />
+                       Foreground="#FFFFFF"
+                       IsHitTestVisible="False" />
         </Grid>
 
         <TextBox x:Name="DetailsText"
