@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media.Animation;
 using Thinksnap.App.Models;
@@ -8,6 +9,8 @@ namespace Thinksnap.App;
 
 public partial class UpdateProgressWindow : Window
 {
+    private static readonly Uri ReleaseNotesUri = new(
+        "https://github.com/arlkn/thinksnap/blob/contender-upgrade/docs/ReleaseNotes.md");
     private readonly AppSettings settings;
     private readonly CancellationTokenSource cancellation;
     private TaskCompletionSource<UpdateWindowAction>? pendingAction;
@@ -20,17 +23,20 @@ public partial class UpdateProgressWindow : Window
 
         Title = T("Update.WindowTitle");
         HeadingText.Text = T("Update.Heading");
+        ReleaseNotesButton.Content = T("Update.ReleaseNotes");
         Report(new UpdateProgressState(T("Update.Checking")));
     }
 
     public Task<UpdateWindowAction> ShowReleaseAsync(UpdateRelease release)
     {
         HeadingText.Text = T("Update.AvailableHeading");
-        StatusText.Text = LocalizationService.Format(settings, "Update.AvailableStatus", release.Tag, release.Channel);
-        DetailsText.Text = $"{LocalizationService.Format(settings, "Update.Size", FormatBytes(release.Installer.Size))}\n\n{release.Notes}";
-        DetailsText.Visibility = Visibility.Visible;
-        DownloadProgressBar.Visibility = Visibility.Collapsed;
-        PercentageText.Visibility = Visibility.Collapsed;
+        StatusText.Text = $"{LocalizationService.Format(settings, "Update.AvailableStatus", release.Tag, release.Channel)} " +
+            LocalizationService.Format(settings, "Update.Size", FormatBytes(release.Installer.Size));
+        DownloadProgressBar.Visibility = Visibility.Visible;
+        DownloadProgressBar.Value = 0;
+        PercentageText.Visibility = Visibility.Visible;
+        PercentageText.Text = "0%";
+        ReleaseNotesButton.Visibility = Visibility.Visible;
         return WaitForAction(
             UpdateWindowAction.Download,
             T("Update.Download"),
@@ -41,15 +47,15 @@ public partial class UpdateProgressWindow : Window
     public Task<UpdateWindowAction> ShowReadyAsync(UpdateRelease release, UpdateVerificationResult verification)
     {
         HeadingText.Text = T("Update.ReadyHeading");
-        StatusText.Text = LocalizationService.Format(settings, "Update.ReadyStatus", release.Tag);
-        DetailsText.Text = verification.SignatureStatus == UpdateSignatureStatus.Unsigned
+        var securityStatus = verification.SignatureStatus == UpdateSignatureStatus.Unsigned
             ? T("Update.UnsignedWarning")
             : LocalizationService.Format(settings, "Update.SignedBy", verification.Signer ?? "Unknown");
-        DetailsText.Visibility = Visibility.Visible;
+        StatusText.Text = $"{LocalizationService.Format(settings, "Update.ReadyStatus", release.Tag)} {securityStatus}";
         DownloadProgressBar.Visibility = Visibility.Visible;
         DownloadProgressBar.Value = 100;
         PercentageText.Visibility = Visibility.Visible;
         PercentageText.Text = "100%";
+        ReleaseNotesButton.Visibility = Visibility.Visible;
         return WaitForAction(
             UpdateWindowAction.Install,
             T("Update.InstallNow"),
@@ -61,7 +67,6 @@ public partial class UpdateProgressWindow : Window
     {
         HeadingText.Text = T("Update.ErrorHeading");
         StatusText.Text = message;
-        DetailsText.Visibility = Visibility.Collapsed;
         return WaitForAction(
             UpdateWindowAction.Retry,
             T("Update.Retry"),
@@ -71,7 +76,6 @@ public partial class UpdateProgressWindow : Window
 
     public void ShowProgress()
     {
-        DetailsText.Visibility = Visibility.Collapsed;
         DownloadProgressBar.Visibility = Visibility.Visible;
         PercentageText.Visibility = Visibility.Visible;
         PrimaryButton.Visibility = Visibility.Collapsed;
@@ -122,6 +126,23 @@ public partial class UpdateProgressWindow : Window
         if (sender is FrameworkElement { Tag: UpdateWindowAction action })
         {
             pendingAction?.TrySetResult(action);
+        }
+    }
+
+    private void ReleaseNotesButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(ReleaseNotesUri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                this,
+                LocalizationService.Format(settings, "Update.OpenFailed", ex.Message),
+                "Thinksnap",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 

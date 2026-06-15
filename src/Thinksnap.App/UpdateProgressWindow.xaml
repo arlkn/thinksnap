@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Thinksnap Update"
         Width="430"
-        Height="360"
+        Height="255"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         WindowStyle="ToolWindow"
@@ -68,7 +68,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -99,42 +98,37 @@
                        IsHitTestVisible="False" />
         </Grid>
 
-        <TextBox x:Name="DetailsText"
-                 Grid.Row="3"
-                 Height="110"
-                 Margin="0,22,0,0"
-                 Padding="10"
-                 IsReadOnly="True"
-                 TextWrapping="Wrap"
-                 VerticalScrollBarVisibility="Auto"
-                 Visibility="Collapsed"
-                 Background="#1F2934"
-                 Foreground="{DynamicResource SecondaryTextBrush}"
-                 BorderBrush="{DynamicResource BorderBrushColor}" />
+        <Grid Grid.Row="3" Margin="0,24,0,0">
+            <Button x:Name="ReleaseNotesButton"
+                    HorizontalAlignment="Left"
+                    Padding="12,7"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Foreground="#22C55E"
+                    Visibility="Collapsed"
+                    Click="ReleaseNotesButton_Click" />
 
-        <StackPanel Grid.Row="4"
-                    Margin="0,24,0,0"
-                    HorizontalAlignment="Right"
-                    Orientation="Horizontal">
-            <Button x:Name="SecondaryButton"
-                    MinWidth="92"
-                    Margin="0,0,8,0"
-                    Padding="14,7"
-                    Visibility="Collapsed"
-                    Click="ActionButton_Click" />
-            <Button x:Name="PrimaryButton"
-                    MinWidth="92"
-                    Margin="0,0,8,0"
-                    Padding="14,7"
-                    Background="#15803D"
-                    BorderBrush="#22C55E"
-                    Visibility="Collapsed"
-                    Click="ActionButton_Click" />
-            <Button x:Name="CancelButton"
-                    MinWidth="92"
-                    Padding="14,7"
-                    Content="Cancel"
-                    Click="CancelButton_Click" />
-        </StackPanel>
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button x:Name="SecondaryButton"
+                        MinWidth="92"
+                        Margin="0,0,8,0"
+                        Padding="14,7"
+                        Visibility="Collapsed"
+                        Click="ActionButton_Click" />
+                <Button x:Name="PrimaryButton"
+                        MinWidth="92"
+                        Margin="0,0,8,0"
+                        Padding="14,7"
+                        Background="#15803D"
+                        BorderBrush="#22C55E"
+                        Visibility="Collapsed"
+                        Click="ActionButton_Click" />
+                <Button x:Name="CancelButton"
+                        MinWidth="92"
+                        Padding="14,7"
+                        Content="Cancel"
+                        Click="CancelButton_Click" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>
