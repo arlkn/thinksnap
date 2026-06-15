@@ -1,5 +1,5 @@
 #define MyAppName "Thinksnap"
-#define MyAppVersion "0.1.4"
+#define MyAppVersion "0.1.5"
 #define MyAppPublisher "arlkn"
 #define MyAppURL "https://github.com/arlkn/thinksnap"
 #define MyAppExeName "Thinksnap.exe"

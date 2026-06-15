@@ -8,7 +8,6 @@ namespace Thinksnap.App.Services;
 
 public static class AuthenticodeVerifier
 {
-    private const uint WintrustActionGenericVerifyV2 = 0x00AAC56B;
     private const uint WtdUiNone = 2;
     private const uint WtdRevokeNone = 0;
     private const uint WtdChoiceFile = 1;
@@ -20,12 +19,29 @@ public static class AuthenticodeVerifier
 
     public static (UpdateSignatureStatus Status, string? Signer, string? Error) Verify(string filePath)
     {
-        var fileInfo = new WinTrustFileInfo(filePath);
-        var data = new WinTrustData(fileInfo);
+        var filePathPointer = Marshal.StringToCoTaskMemUni(filePath);
+        var fileInfo = new WinTrustFileInfo
+        {
+            StructSize = (uint)Marshal.SizeOf<WinTrustFileInfo>(),
+            FilePath = filePathPointer
+        };
+        var fileInfoPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf<WinTrustFileInfo>());
+        Marshal.StructureToPtr(fileInfo, fileInfoPointer, false);
+        var data = new WinTrustData
+        {
+            StructSize = (uint)Marshal.SizeOf<WinTrustData>(),
+            UIChoice = WtdUiNone,
+            RevocationChecks = WtdRevokeNone,
+            UnionChoice = WtdChoiceFile,
+            FileInfo = fileInfoPointer,
+            StateAction = WtdStateActionIgnore,
+            ProvFlags = WtdProvFlagsSafer
+        };
+
         try
         {
             var action = new Guid("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
-            var result = WinVerifyTrust(IntPtr.Zero, action, data);
+            var result = WinVerifyTrust(IntPtr.Zero, ref action, ref data);
             if (result == 0)
             {
                 return (UpdateSignatureStatus.Valid, ReadSigner(filePath), null);
@@ -40,8 +56,8 @@ public static class AuthenticodeVerifier
         }
         finally
         {
-            data.Dispose();
-            fileInfo.Dispose();
+            Marshal.FreeCoTaskMem(fileInfoPointer);
+            Marshal.FreeCoTaskMem(filePathPointer);
         }
     }
 
@@ -59,55 +75,32 @@ public static class AuthenticodeVerifier
     }
 
     [DllImport("wintrust.dll", ExactSpelling = true, SetLastError = true)]
-    private static extern int WinVerifyTrust(IntPtr hwnd, [MarshalAs(UnmanagedType.LPStruct)] Guid actionId, WinTrustData data);
+    private static extern int WinVerifyTrust(IntPtr hwnd, ref Guid actionId, ref WinTrustData data);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private sealed class WinTrustFileInfo : IDisposable
+    private struct WinTrustFileInfo
     {
-        private readonly IntPtr filePathPointer;
-        public uint StructSize = (uint)Marshal.SizeOf<WinTrustFileInfo>();
+        public uint StructSize;
         public IntPtr FilePath;
-        public IntPtr FileHandle = IntPtr.Zero;
-        public IntPtr KnownSubject = IntPtr.Zero;
-
-        public WinTrustFileInfo(string filePath)
-        {
-            filePathPointer = Marshal.StringToCoTaskMemUni(filePath);
-            FilePath = filePathPointer;
-        }
-
-        public void Dispose() => Marshal.FreeCoTaskMem(filePathPointer);
+        public IntPtr FileHandle;
+        public IntPtr KnownSubject;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private sealed class WinTrustData : IDisposable
+    private struct WinTrustData
     {
-        private readonly IntPtr fileInfoPointer;
-        public uint StructSize = (uint)Marshal.SizeOf<WinTrustData>();
-        public IntPtr PolicyCallbackData = IntPtr.Zero;
-        public IntPtr SipClientData = IntPtr.Zero;
-        public uint UIChoice = WtdUiNone;
-        public uint RevocationChecks = WtdRevokeNone;
-        public uint UnionChoice = WtdChoiceFile;
+        public uint StructSize;
+        public IntPtr PolicyCallbackData;
+        public IntPtr SipClientData;
+        public uint UIChoice;
+        public uint RevocationChecks;
+        public uint UnionChoice;
         public IntPtr FileInfo;
-        public uint StateAction = WtdStateActionIgnore;
-        public IntPtr StateData = IntPtr.Zero;
-        public IntPtr UrlReference = IntPtr.Zero;
-        public uint ProvFlags = WtdProvFlagsSafer;
-        public uint UIContext = 0;
-        public IntPtr SignatureSettings = IntPtr.Zero;
-
-        public WinTrustData(WinTrustFileInfo fileInfo)
-        {
-            fileInfoPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf(fileInfo));
-            Marshal.StructureToPtr(fileInfo, fileInfoPointer, false);
-            FileInfo = fileInfoPointer;
-        }
-
-        public void Dispose()
-        {
-            Marshal.DestroyStructure<WinTrustFileInfo>(fileInfoPointer);
-            Marshal.FreeCoTaskMem(fileInfoPointer);
-        }
+        public uint StateAction;
+        public IntPtr StateData;
+        public IntPtr UrlReference;
+        public uint ProvFlags;
+        public uint UIContext;
+        public IntPtr SignatureSettings;
     }
 }

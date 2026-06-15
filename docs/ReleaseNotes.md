@@ -2,6 +2,12 @@
 
 This page contains the public change history for Thinksnap releases.
 
+## 0.1.5
+
+- Fixed a native Authenticode verification layout bug that could close Thinksnap after the download reached 100%.
+- Fully downloaded update files are now verified directly instead of being downloaded again.
+- The progress bar now switches to a verification state instead of presenting download completion as installation completion.
+
 ## 0.1.4
 
 - Simplified the in-app updater to show status and progress without embedded patch notes.

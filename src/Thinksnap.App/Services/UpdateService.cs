@@ -165,6 +165,17 @@ public sealed class UpdateService
         Directory.CreateDirectory(Path.GetDirectoryName(partialPath)!);
         var existingLength = File.Exists(partialPath) ? new FileInfo(partialPath).Length : 0;
 
+        if (existingLength == release.Installer.Size && existingLength > 0)
+        {
+            progress.Report(new UpdateProgressState(LocalizationService.Text(activeSettings, "Update.Verifying")));
+            return await VerifyDownloadedInstallerAsync(
+                release,
+                state,
+                partialPath,
+                existingLength,
+                cancellationToken);
+        }
+
         using var request = new HttpRequestMessage(HttpMethod.Get, release.Installer.DownloadUri);
         if (existingLength > 0)
         {
@@ -241,11 +252,22 @@ public sealed class UpdateService
         await destination.FlushAsync(cancellationToken);
         await destination.DisposeAsync();
         stateService.Save(state);
-        progress.Report(new UpdateProgressState(
-            LocalizationService.Text(activeSettings, "Update.Verifying"),
-            100,
+        progress.Report(new UpdateProgressState(LocalizationService.Text(activeSettings, "Update.Verifying")));
+        return await VerifyDownloadedInstallerAsync(
+            release,
+            state,
+            partialPath,
             downloadedBytes,
-            totalBytes));
+            cancellationToken);
+    }
+
+    private async Task<UpdateVerificationResult> VerifyDownloadedInstallerAsync(
+        UpdateRelease release,
+        UpdateDownloadState state,
+        string partialPath,
+        long downloadedBytes,
+        CancellationToken cancellationToken)
+    {
         var checksumText = await HttpClient.GetStringAsync(release.Checksum.DownloadUri, cancellationToken);
         var checksumDigest = UpdateHashPolicy.Normalize(checksumText);
         var calculatedDigest = await CalculateSha256Async(partialPath, cancellationToken);

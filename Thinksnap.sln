@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thinksnap.App", "src\Thinks
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thinksnap.Core.Tests", "tests\Thinksnap.Core.Tests\Thinksnap.Core.Tests.csproj", "{2F8C4DE0-2A46-462A-9C38-305FE4900E07}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thinksnap.App.Tests", "tests\Thinksnap.App.Tests\Thinksnap.App.Tests.csproj", "{CD1CFE0E-6B78-4D6A-A25D-18B3D984FD92}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{2F8C4DE0-2A46-462A-9C38-305FE4900E07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F8C4DE0-2A46-462A-9C38-305FE4900E07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F8C4DE0-2A46-462A-9C38-305FE4900E07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD1CFE0E-6B78-4D6A-A25D-18B3D984FD92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD1CFE0E-6B78-4D6A-A25D-18B3D984FD92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD1CFE0E-6B78-4D6A-A25D-18B3D984FD92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD1CFE0E-6B78-4D6A-A25D-18B3D984FD92}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
