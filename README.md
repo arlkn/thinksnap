@@ -1,4 +1,4 @@
-# Thinksnap📷
+# Thinksnap 📷
 
 Thinksnap is a lightweight Windows screenshot MVP app. It focuses on region capture, pixelate censorship, annotations, undo, clipboard copy, and PNG save.
 
