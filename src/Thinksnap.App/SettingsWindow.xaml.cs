@@ -42,7 +42,6 @@ public partial class SettingsWindow : Window
         FloatingCaptureButtonCheckBox.IsChecked = settings.ShowFloatingCaptureButton;
         MinimizeToTrayCheckBox.IsChecked = settings.MinimizeToTrayOnClose;
         SelectionInstructionsCheckBox.IsChecked = settings.ShowSelectionInstructions;
-        TextMoveHandlesCheckBox.IsChecked = settings.ShowTextMoveHandles;
         TextBoldCheckBox.IsChecked = settings.DefaultTextBold;
         TextBackgroundCheckBox.IsChecked = settings.DefaultTextBackgroundEnabled;
         CopyAfterSaveCheckBox.IsChecked = settings.CopyAfterSave;
@@ -104,7 +103,6 @@ public partial class SettingsWindow : Window
         SetComboItemContent(DefaultRedactionBox, "Pixelate", T("Settings.RedactionPixelate"));
         SetComboItemContent(DefaultRedactionBox, "Blackout", T("Settings.RedactionBlackout"));
         SetComboItemContent(DefaultRedactionBox, "Blur", T("Settings.RedactionBlur"));
-        TextMoveHandlesCheckBox.Content = T("Settings.ShowTextMoveHandles");
         TextBoldCheckBox.Content = T("Settings.TextBold");
         TextAlignmentLabelText.Text = T("Settings.DefaultTextAlignment");
         SetComboItemContent(TextAlignmentBox, "Left", T("Settings.TextAlignmentLeft"));
@@ -418,17 +416,6 @@ public partial class SettingsWindow : Window
 
         settings.DefaultTextFontSize = Math.Round(TextFontSizeSlider.Value);
         UpdateRangeLabels();
-        ApplyCurrentSettings();
-    }
-
-    private void TextMoveHandlesCheckBox_Changed(object sender, RoutedEventArgs e)
-    {
-        if (isLoading)
-        {
-            return;
-        }
-
-        settings.ShowTextMoveHandles = TextMoveHandlesCheckBox.IsChecked == true;
         ApplyCurrentSettings();
     }
 

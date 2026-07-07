@@ -573,10 +573,6 @@
                                     TickFrequency="1"
                                     IsSnapToTickEnabled="True"
                                     ValueChanged="TextFontSizeSlider_ValueChanged" />
-                            <CheckBox x:Name="TextMoveHandlesCheckBox"
-                                      Content="Show text move handles"
-                                      Checked="TextMoveHandlesCheckBox_Changed"
-                                      Unchecked="TextMoveHandlesCheckBox_Changed" />
                             <CheckBox x:Name="TextBoldCheckBox"
                                       Content="Create new text as bold"
                                       Checked="TextBoldCheckBox_Changed"

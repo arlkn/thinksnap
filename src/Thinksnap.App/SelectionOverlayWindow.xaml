@@ -123,6 +123,19 @@
                     CornerRadius="4"
                     IsHitTestVisible="False" />
 
+            <Thumb x:Name="EditorFrameDragSurface"
+                   Cursor="SizeAll"
+                   Visibility="Collapsed"
+                   DragStarted="EditorFrameAdjust_DragStarted"
+                   DragDelta="EditorFrameDragSurface_DragDelta"
+                   DragCompleted="EditorFrameAdjust_DragCompleted">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
+
             <Thumb x:Name="ResizeTopLeftThumb"
                    Style="{StaticResource SelectionHandleThumbStyle}"
                    Cursor="SizeNWSE"
@@ -155,31 +168,6 @@
                    Style="{StaticResource SelectionHandleThumbStyle}"
                    Cursor="SizeWE"
                    Tag="Left" />
-
-            <Thumb x:Name="EditorFrameMoveThumb"
-                   Width="120"
-                   Height="22"
-                   Cursor="SizeAll"
-                   DragStarted="EditorFrameAdjust_DragStarted"
-                   DragDelta="EditorFrameMoveThumb_DragDelta"
-                   DragCompleted="EditorFrameAdjust_DragCompleted">
-                <Thumb.Template>
-                    <ControlTemplate TargetType="Thumb">
-                        <Border Background="#E0181D24"
-                                BorderBrush="{DynamicResource AccentBrush}"
-                                BorderThickness="1"
-                                CornerRadius="10">
-                            <StackPanel Orientation="Horizontal"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center">
-                                <Ellipse Width="3" Height="3" Fill="#F4F7FB" Margin="2,0" />
-                                <Ellipse Width="3" Height="3" Fill="#F4F7FB" Margin="2,0" />
-                                <Ellipse Width="3" Height="3" Fill="#F4F7FB" Margin="2,0" />
-                            </StackPanel>
-                        </Border>
-                    </ControlTemplate>
-                </Thumb.Template>
-            </Thumb>
 
             <Border x:Name="EditorToolbar"
                     Padding="12"

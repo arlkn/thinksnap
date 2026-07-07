@@ -31,6 +31,7 @@ public partial class SelectionOverlayWindow : Window
 
     private Int32Rect activeEditorRegion;
     private bool editorFrameAdjusted;
+    private bool editorFrameDragSurfaceEnabled;
     private WindowsPoint? dragStart;
 
     public SelectionOverlayWindow(Bitmap screenCapture, CaptureService captureService, Rect overlayBounds, AppSettings settings)
@@ -153,6 +154,7 @@ public partial class SelectionOverlayWindow : Window
         LoadFullEditorImage();
         activeEditorRegion = selectedRegion;
         SelectedRegion = selectedRegion;
+        editorFrameDragSurfaceEnabled = true;
         PositionEditorFrame(selectedRegion);
 
         OverlayCanvas.Visibility = Visibility.Collapsed;
@@ -169,14 +171,14 @@ public partial class SelectionOverlayWindow : Window
         editorFrameAdjusted = false;
     }
 
-    private void EditorFrameMoveThumb_DragDelta(object sender, DragDeltaEventArgs e)
+    private void EditorFrameDragSurface_DragDelta(object sender, DragDeltaEventArgs e)
     {
-        var currentLeft = GetCanvasLeft(EditorFrame);
-        var currentTop = GetCanvasTop(EditorFrame);
-        var nextLeft = Math.Clamp(currentLeft + e.HorizontalChange, 0, Math.Max(0, Width - EditorFrame.Width));
-        var nextTop = Math.Clamp(currentTop + e.VerticalChange, 0, Math.Max(0, Height - EditorFrame.Height));
+        var movedFrame = SelectionFrameGeometry.MoveWithinBounds(
+            new Rect(GetCanvasLeft(EditorFrame), GetCanvasTop(EditorFrame), EditorFrame.Width, EditorFrame.Height),
+            new Vector(e.HorizontalChange, e.VerticalChange),
+            new System.Windows.Size(Width, Height));
 
-        SetEditorFrameVisualRect(new Rect(nextLeft, nextTop, EditorFrame.Width, EditorFrame.Height));
+        SetEditorFrameVisualRect(movedFrame);
         editorFrameAdjusted = true;
         UpdateActiveRegionFromFrame();
         PositionEditorChrome();
@@ -248,30 +250,18 @@ public partial class SelectionOverlayWindow : Window
 
     private void PositionEditorChrome()
     {
-        PositionMoveThumbNearFrame();
+        PositionFrameDragSurface();
         PositionResizeHandles();
         PositionToolbarNearFrame();
     }
 
-    private void PositionMoveThumbNearFrame()
+    private void PositionFrameDragSurface()
     {
-        var frameLeft = GetCanvasLeft(EditorFrame);
-        var frameTop = GetCanvasTop(EditorFrame);
-        EditorFrameMoveThumb.Width = Math.Clamp(EditorFrame.Width - 24, 54, 180);
-        var thumbWidth = EditorFrameMoveThumb.Width;
-        var thumbHeight = EditorFrameMoveThumb.Height;
-        var thumbLeft = frameLeft + ((EditorFrame.Width - thumbWidth) / 2);
-        var thumbTop = frameTop - thumbHeight - 6;
-
-        if (thumbTop < 4)
-        {
-            thumbTop = frameTop + 6;
-        }
-
-        thumbLeft = Math.Clamp(thumbLeft, 4, Math.Max(4, Width - thumbWidth - 4));
-        thumbTop = Math.Clamp(thumbTop, 4, Math.Max(4, Height - thumbHeight - 4));
-        Canvas.SetLeft(EditorFrameMoveThumb, thumbLeft);
-        Canvas.SetTop(EditorFrameMoveThumb, thumbTop);
+        Canvas.SetLeft(EditorFrameDragSurface, GetCanvasLeft(EditorFrame));
+        Canvas.SetTop(EditorFrameDragSurface, GetCanvasTop(EditorFrame));
+        EditorFrameDragSurface.Width = EditorFrame.Width;
+        EditorFrameDragSurface.Height = EditorFrame.Height;
+        EditorFrameDragSurface.Visibility = editorFrameDragSurfaceEnabled ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void PositionResizeHandles()
@@ -354,7 +344,6 @@ public partial class SelectionOverlayWindow : Window
         CanvasHost.TextBackgroundColor = settings.DefaultTextBackgroundEnabled
             ? settings.DefaultTextBackgroundColor
             : null;
-        CanvasHost.ShowTextMoveHandles = settings.ShowTextMoveHandles;
         CanvasHost.ActiveRedactionStyle = Enum.TryParse<RedactionStyle>(
             settings.DefaultRedactionStyle,
             ignoreCase: true,
@@ -477,6 +466,8 @@ public partial class SelectionOverlayWindow : Window
 
     private void SetActiveTool(AnnotationTool tool, WpfButton activeButton)
     {
+        editorFrameDragSurfaceEnabled = false;
+        PositionFrameDragSurface();
         CanvasHost.ActiveTool = tool;
 
         foreach (var button in toolButtons)

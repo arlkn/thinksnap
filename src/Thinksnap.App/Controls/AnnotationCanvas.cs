@@ -36,6 +36,7 @@ public sealed class AnnotationCanvas : Canvas
     private WpfGrid? selectedTextContainer;
     private WpfTextBox? selectedTextBox;
     private Border? textToolbar;
+    private System.Windows.Controls.Button? textColorButton;
     private RedactionStyle lastRedactionStyle = RedactionStyle.Pixelate;
 
     public AnnotationCanvas()
@@ -60,8 +61,6 @@ public sealed class AnnotationCanvas : Canvas
     public TextAnnotationAlignment TextAlignment { get; set; } = TextAnnotationAlignment.Left;
 
     public string? TextBackgroundColor { get; set; }
-
-    public bool ShowTextMoveHandles { get; set; } = true;
 
     public string NewTextPlaceholder { get; set; } = "Text";
 
@@ -360,31 +359,7 @@ public sealed class AnnotationCanvas : Canvas
 
         container.Children.Add(textBox);
 
-        if (ShowTextMoveHandles)
-        {
-            var moveThumb = new Thumb
-            {
-                Width = 54,
-                Height = 13,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top,
-                Cursor = System.Windows.Input.Cursors.SizeAll,
-                Background = CreateStrokeBrush(),
-                Opacity = 0.9
-            };
-
-            moveThumb.DragDelta += (_, args) =>
-            {
-                var nextLeft = Math.Clamp(GetLeft(container) + args.HorizontalChange, 0, Math.Max(0, Width - container.Width));
-                var nextTop = Math.Clamp(GetTop(container) + args.VerticalChange, 0, Math.Max(0, Height - container.Height));
-                SetLeft(container, nextLeft);
-                SetTop(container, nextTop);
-                PositionTextToolbar(container);
-                UpdateTextOperation(operationIndex, container, textBox);
-            };
-
-            container.Children.Add(moveThumb);
-        }
+        AttachTextSurfaceDrag(container, textBox, operationIndex);
 
         container.Children.Add(resizeThumb);
         container.GotKeyboardFocus += (_, _) => SelectTextContainer(container, textBox);
@@ -642,6 +617,7 @@ public sealed class AnnotationCanvas : Canvas
         selectedTextContainer = container;
         selectedTextBox = textBox;
         ShowTextToolbar(container);
+        UpdateTextColorIndicator(textBox);
     }
 
     private void ShowTextToolbar(WpfGrid container)
@@ -668,7 +644,8 @@ public sealed class AnnotationCanvas : Canvas
         panel.Children.Add(CreateTextToolbarButton("B", ToggleTextBold));
         panel.Children.Add(CreateTextToolbarButton("≡", CycleTextAlignment));
         panel.Children.Add(CreateTextToolbarButton("◩", ToggleTextBackground));
-        panel.Children.Add(CreateTextToolbarButton("●", CycleTextColor));
+        textColorButton = CreateTextToolbarButton("●", CycleTextColor);
+        panel.Children.Add(textColorButton);
         panel.Children.Add(CreateTextToolbarButton("×", DeleteSelectedText));
 
         return new Border
@@ -764,7 +741,83 @@ public sealed class AnnotationCanvas : Canvas
             };
             textBox.Foreground = (WpfBrush)new BrushConverter().ConvertFromString(next)!;
             textBox.BorderBrush = textBox.Foreground;
+            UpdateTextColorIndicator(textBox);
         });
+    }
+
+    private void AttachTextSurfaceDrag(WpfGrid container, WpfTextBox textBox, int operationIndex)
+    {
+        WpfPoint? pointerStart = null;
+        WpfPoint? containerStart = null;
+        var isDragging = false;
+
+        textBox.PreviewMouseLeftButtonDown += (_, args) =>
+        {
+            pointerStart = args.GetPosition(this);
+            containerStart = new WpfPoint(GetLeft(container), GetTop(container));
+            isDragging = false;
+            SelectTextContainer(container, textBox);
+        };
+
+        textBox.PreviewMouseMove += (_, args) =>
+        {
+            if (pointerStart is null || containerStart is null || args.LeftButton != MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            var current = args.GetPosition(this);
+            var delta = current - pointerStart.Value;
+            if (isDragging is false && delta.Length < MinimumDragDistance)
+            {
+                return;
+            }
+
+            isDragging = true;
+            textBox.CaptureMouse();
+
+            var moved = SelectionFrameGeometry.MoveWithinBounds(
+                new Rect(containerStart.Value.X, containerStart.Value.Y, container.Width, container.Height),
+                delta,
+                new System.Windows.Size(Width, Height));
+
+            SetLeft(container, moved.X);
+            SetTop(container, moved.Y);
+            PositionTextToolbar(container);
+            UpdateTextOperation(operationIndex, container, textBox);
+            args.Handled = true;
+        };
+
+        textBox.PreviewMouseLeftButtonUp += (_, args) =>
+        {
+            if (isDragging)
+            {
+                args.Handled = true;
+            }
+
+            textBox.ReleaseMouseCapture();
+            pointerStart = null;
+            containerStart = null;
+            isDragging = false;
+        };
+    }
+
+    private void UpdateTextColorIndicator(WpfTextBox textBox)
+    {
+        if (textColorButton is null || textBox.Foreground is not SolidColorBrush foreground)
+        {
+            return;
+        }
+
+        textColorButton.Background = foreground;
+        textColorButton.BorderBrush = foreground;
+        textColorButton.Foreground = IsLightColor(foreground.Color) ? WpfBrushes.Black : WpfBrushes.White;
+    }
+
+    private static bool IsLightColor(System.Windows.Media.Color color)
+    {
+        var brightness = ((color.R * 299) + (color.G * 587) + (color.B * 114)) / 1000;
+        return brightness > 170;
     }
 
     private void DeleteSelectedText()

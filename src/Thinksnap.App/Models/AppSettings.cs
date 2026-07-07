@@ -36,7 +36,7 @@ public sealed class AppSettings
 
     public double DefaultTextFontSize { get; set; } = 18;
 
-    public string DefaultTextColor { get; set; } = "#ff0000";
+    public string DefaultTextColor { get; set; } = "#ffffff";
 
     public bool DefaultTextBold { get; set; }
 
@@ -45,8 +45,6 @@ public sealed class AppSettings
     public bool DefaultTextBackgroundEnabled { get; set; }
 
     public string DefaultTextBackgroundColor { get; set; } = "#d2000000";
-
-    public bool ShowTextMoveHandles { get; set; } = true;
 
     public string DefaultFileNamePattern { get; set; } = "thinksnap-{yyyyMMdd-HHmmss}.png";
 
@@ -85,7 +83,6 @@ public sealed class AppSettings
             DefaultTextAlignment = DefaultTextAlignment,
             DefaultTextBackgroundEnabled = DefaultTextBackgroundEnabled,
             DefaultTextBackgroundColor = DefaultTextBackgroundColor,
-            ShowTextMoveHandles = ShowTextMoveHandles,
             DefaultFileNamePattern = DefaultFileNamePattern,
             CopyAfterSave = CopyAfterSave,
             UpdateUrl = UpdateUrl,
