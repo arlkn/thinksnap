@@ -18,8 +18,10 @@ The manifest is not submitted automatically. Before submitting a new version to 
 After acceptance into Windows Package Manager, users should be able to install Thinksnap with:
 
 ```powershell
-winget install arlkn.Thinksnap
+winget install --id arlkn.Thinksnap --exact --source winget
 ```
+
+Until the package is accepted, keep the GitHub Releases installer command in the README as the working fallback.
 
 ## Current Draft Values
 

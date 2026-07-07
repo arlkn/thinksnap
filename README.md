@@ -12,15 +12,19 @@ Thinksnap is a lightweight Windows screenshot MVP app. It focuses on region capt
   <strong>Click the icon to download the Thinksnap installer</strong>
 </p>
 
-## Install with PowerShell Command
+## Install
 
 ```powershell
-$setup = Join-Path $env:TEMP "ThinksnapSetup.exe"
-Invoke-WebRequest "https://github.com/arlkn/thinksnap/releases/latest/download/ThinksnapSetup.exe" -OutFile $setup
-Start-Process $setup -ArgumentList "/SILENT /NORESTART" -Wait
+winget install --id arlkn.Thinksnap --exact --source winget
 ```
 
-This downloads the latest official GitHub release and installs Thinksnap for the current Windows user.
+If Windows Package Manager does not find the package yet, install the latest GitHub release directly:
+
+```powershell
+$setup = "$env:TEMP\ThinksnapSetup.exe"; iwr "https://github.com/arlkn/thinksnap/releases/latest/download/ThinksnapSetup.exe" -OutFile $setup; Start-Process $setup -ArgumentList "/SILENT /NORESTART" -Wait
+```
+
+The Winget package, once accepted, should install the official Thinksnap release. The fallback command downloads the latest official GitHub release and installs Thinksnap for the current Windows user.
 
 Installer verification and SmartScreen notes are documented in [Installing Thinksnap Safely](docs/InstallSafely.md) and [Thinksnap Security](docs/ThinksnapSecurity.md). Verify each release with `ThinksnapSetup.exe.sha256.txt` from the same GitHub release.
 
@@ -65,7 +69,7 @@ Use `scripts\Sign-ThinksnapInstaller.ps1` with a trusted code-signing certificat
 
 ## Safe Distribution
 
-Thinksnap is currently distributed through GitHub Releases with SHA256 checksum files. A draft Windows Package Manager manifest is available in [packaging/winget](packaging/winget), with submission notes in [docs/Winget.md](docs/Winget.md).
+Thinksnap is currently distributed through GitHub Releases with SHA256 checksum files. A draft Windows Package Manager manifest is available in [packaging/winget](packaging/winget), with submission notes in [docs/Winget.md](docs/Winget.md). After the manifest is accepted into Windows Package Manager, `winget install --id arlkn.Thinksnap --exact --source winget` is the preferred install command.
 
 ## MVP Scope
 
